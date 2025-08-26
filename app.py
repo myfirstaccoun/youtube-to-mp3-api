@@ -51,10 +51,10 @@ def get_duration(file_path):
     return float(result.stdout)
 
 async def search_messages(channel: int, keyword):
-    async for message in client.iter_messages(channel, search=keyword):
-        print(f'[{message.id}]')
-        # print(f'[{message.date}] {message.sender_id}: {message.text}')
-        return [message.id, message.text]
+    async for message in client.iter_messages(channel):
+        if keyword in message.text:
+            print(f'[{message.id}]')
+            return [message.id, message.text]
     return None
 
 def download_with_demerge(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
