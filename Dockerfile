@@ -1,37 +1,41 @@
-FROM python:3-alpine AS builder
+# ===== Stage 1: Builder =====
+FROM python:3.12-alpine AS builder
 
 WORKDIR /app
 
-# تثبيت ffmpeg والحزم اللازمة للبناء
-RUN apk add --no-cache ffmpeg gcc musl-dev libffi-dev
+# تثبيت ffmpeg والحزم اللازمة
+RUN apk add --no-cache ffmpeg gcc musl-dev libffi-dev openssl-dev
 
-# إنشاء بيئة افتراضية
+# إنشاء virtual environment
 RUN python3 -m venv venv
 ENV VIRTUAL_ENV=/app/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# تثبيت المتطلبات
+# نسخ وتثبيت المتطلبات
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Stage 2
-FROM python:3-alpine AS runner
+# ===== Stage 2: Runner =====
+FROM python:3.12-alpine AS runner
 
 WORKDIR /app
 
-# تثبيت ffmpeg فقط (التشغيل)
+# تثبيت ffmpeg فقط (تشغيل)
 RUN apk add --no-cache ffmpeg
 
 # نسخ البيئة الافتراضية من مرحلة البناء
 COPY --from=builder /app/venv venv
-COPY app.py app.py
+
+# نسخ الملفات
+COPY app.py .
 COPY session_name.session .
 
 ENV VIRTUAL_ENV=/app/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENV FLASK_APP=app.py
 
+# فتح البورت
 EXPOSE 8000
 
-# تشغيل Gunicorn بـ Worker واحد و4 Threads لتفادي مشكلة SQLite
-CMD ["gunicorn", "--bind", ":8000", "--workers", "1", "--threads", "4", "app:app"]
+# تشغيل Gunicorn مع 1 worker و4 threads (للتعامل مع SQLite أو عمليات متزامنة)
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "4", "app:app"]
