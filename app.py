@@ -62,9 +62,6 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
                           file_start_num: int = start_num):
     """تحميل الفيديو وتقسيمه"""
     base_id = video_url.split('=')[-1]
-    pattern = os.path.join(folder_path, f"{base_id}_*.{file_extension}")
-    existing_files = sorted(glob.glob(pattern))
-    existing_files_relative = [os.path.relpath(f, start=os.getcwd()) for f in existing_files]
 
     downloads_status[download_id] = {"status": "processing", "progress": 0, "files": []}
 
@@ -132,6 +129,10 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
 
     final_files = sorted(glob.glob(os.path.join(folder_path, f"{base_name}_*.{file_extension}")))
     final_files = [os.path.relpath(f, start=os.getcwd()) for f in final_files]
+
+    # ==== مسح الملف الأصلي بعد تقسيمه ====
+    if os.path.exists(downloaded_file):
+        os.remove(downloaded_file)
 
     downloads_status[download_id] = {"status": "done downloading", "progress": 100, "files": final_files}
     return final_files
@@ -202,6 +203,12 @@ async def download_and_send(download_id, video_url):
             downloads_status[download_id].setdefault("msg_map", {})[fwd_msg.id] = os.path.basename(file)
 
             print(f"📩 تم إعادة توجيه الملف للبوت: {file}")
+
+        # ==== مسح كل الملفات المقسمة بعد الإرسال ====
+        for file in files:
+            if os.path.exists(file):
+                os.remove(file)
+                print(f"🗑️ تم مسح الملف: {file}")
 
         await client.send_message(CHANNEL_ID, f"{base_id} {len(files)}")
         downloads_status[download_id]["status"] = "done"
