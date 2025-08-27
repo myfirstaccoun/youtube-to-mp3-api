@@ -253,9 +253,10 @@ def start_download():
     # لو الفيديو ده جاري تحميله أو اتحمل بالفعل → رجع نفس الـ download_id
     if link in video_to_id:
         download_id = video_to_id[link]
-        status = downloads_status.get(download_id, {}).get("status")
+        status_data = downloads_status.get(download_id, {"status": "pending"})
+        status = status_data.get("status")
         if status not in ["done", "error"]:
-            return jsonify({"download_id": download_id, "status": downloads_status[download_id]})
+            return jsonify({"download_id": download_id, "status": status_data})
 
     download_id = str(uuid.uuid4())
     video_to_id[link] = download_id  # اربط الرابط بالـ ID
