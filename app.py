@@ -278,7 +278,7 @@ def start_download():
 def check_status(download_id):
     status = downloads_status.get(download_id)
     if not status:
-        return jsonify({"error": "Download ID غير موجود"}), 404
+        return jsonify({"error": f"Download ID غير موجود, {str(downloads_status)}"}), 200
     return jsonify({"download_id": download_id, "status": status})
 
 @app.route("/downloads/<path:filename>")
