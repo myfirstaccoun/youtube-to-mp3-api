@@ -57,6 +57,27 @@ async def search_messages(channel: int, keyword):
             return [message.id, message.text]
     return None
 
+async def auto_delete(download_id, wait_seconds=60):
+    await asyncio.sleep(wait_seconds)
+    # لو لسه موجود بعد دقيقة
+    if download_id in downloads_status:
+        # حذف من video_to_id (لو موجود)
+        for link, dl_id in list(video_to_id.items()):
+            if dl_id == download_id:
+                del video_to_id[link]
+
+        # حذف الملفات من القرص لو موجودة
+        files = downloads_status[download_id].get("files", [])
+        for f in files:
+            if os.path.exists(f):
+                os.remove(f)
+                print(f"🗑️ تم مسح الملف تلقائيًا: {f}")
+
+        # حذف من downloads_status
+        del downloads_status[download_id]
+        print(f"🗑️ Download ID {download_id} تم حذفه تلقائيًا بعد دقيقة")
+
+# ===== تنزيل وتقسيم =====
 def download_with_demerge(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
                           file_extension: str = file_ext, target_size: int = chunk_size,
                           file_start_num: int = start_num):
@@ -173,6 +194,9 @@ async def download_and_send(download_id, video_url):
 
 
         downloads_status[download_id]["status"] = "done"
+        
+        # تشغيل المهمة بدون انتظار في نفس الـ loop
+        asyncio.create_task(auto_delete(download_id))
     else: # لو مش موجودة نزل وقسّم وابعت وهات الروابط
         files = await asyncio.to_thread(download_with_demerge, download_id, video_url)
         files_count = len(files)
@@ -219,7 +243,10 @@ async def download_and_send(download_id, video_url):
 
         await client.send_message(CHANNEL_ID, f"{base_id} {len(files)}")
         downloads_status[download_id]["status"] = "done"
-
+        
+        # تشغيل المهمة بدون انتظار في نفس الـ loop
+        asyncio.create_task(auto_delete(download_id))
+        
 @client.on(events.NewMessage(from_users=BOT_ID))
 async def handler(event):
     if event.is_reply:
