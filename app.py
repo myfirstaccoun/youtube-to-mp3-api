@@ -290,6 +290,18 @@ def check_status(download_id):
     status = downloads_status.get(download_id)
     if not status:
         return jsonify({"error": f"Download ID غير موجود, {str(downloads_status)}"}), 200
+
+    delete_flag = request.args.get("delete", "").lower() == "true"  # لو ?delete=true
+    if delete_flag:
+        # حذف من video_to_id (لو موجود)
+        for link, dl_id in list(video_to_id.items()):
+            if dl_id == download_id:
+                del video_to_id[link]
+
+        # حذف من downloads_status
+        del downloads_status[download_id]
+        return jsonify({"message": f"Download ID {download_id} تم حذفه بنجاح"})
+
     return jsonify({"download_id": download_id, "status": status})
 
 @app.route("/downloads/<path:filename>")
