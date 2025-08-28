@@ -293,7 +293,7 @@ def start_download():
         download_id = video_to_id[link]
         status_data = downloads_status.get(download_id, {"status": "pending"})
         status = status_data.get("status")
-        if status not in ["done", "error"]:
+        if status not in ["error"]:
             return jsonify({"download_id": download_id, "status": status_data})
 
     download_id = str(uuid.uuid4())
