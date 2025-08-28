@@ -289,7 +289,7 @@ def start_download():
 def check_status(download_id):
     status = downloads_status.get(download_id)
     if not status:
-        return jsonify({"error": f"Download ID غير موجود, {str(downloads_status)}"}), 200
+        return jsonify({"error": f"Download ID Not found, {str(downloads_status)}"}), 200
 
     delete_flag = request.args.get("delete", "").lower() == "true"  # لو ?delete=true
     if delete_flag:
