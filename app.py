@@ -164,6 +164,7 @@ async def download_and_send(download_id, video_url):
             downloads_status[download_id].setdefault("msg_map", {})[fwd_msg.id] = os.path.basename(file)
 
             print(f"📩 تم إعادة توجيه الملف للبوت: {file}")
+            await asyncio.sleep(1)
 
         downloads_status[download_id]["status"] = "done"
     else: # لو مش موجودة نزل وقسّم وابعت وهات الروابط
