@@ -82,6 +82,7 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
                           file_extension: str = file_ext, target_size: int = chunk_size,
                           file_start_num: int = start_num):
     """تحميل الفيديو وتقسيمه"""
+    downloads_status[download_id]["status"] = "in download"
     base_id = video_url.split('=')[-1]
 
     downloads_status[download_id] = {"status": "processing", "progress": 0, "files": []}
@@ -160,10 +161,13 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
 
 # ===== دالة إرسال الملفات للتيليجرام مع تقدم لكل ملف =====
 async def download_and_send(download_id, video_url):
+    downloads_status[download_id]["status"] = "in send"
     base_id = video_url.split('=')[-1]
     message_id = await search_messages(CHANNEL_ID, base_id)
+    downloads_status[download_id]["status"] = "after msg id"
 
     if message_id: # لو الرسالة موجودة في القناة هات الروابط
+        downloads_status[download_id]["status"] = "in if"
         msg_id = message_id[0] # 74
         files_count = int(message_id[1].split(" ")[-1]) # 3
         ids = list(range(msg_id - files_count, msg_id)) # [71, 72, 73] (آخر 3 رسائل)
@@ -198,6 +202,7 @@ async def download_and_send(download_id, video_url):
         # تشغيل المهمة بدون انتظار في نفس الـ loop
         asyncio.create_task(auto_delete(download_id))
     else: # لو مش موجودة نزل وقسّم وابعت وهات الروابط
+        downloads_status[download_id]["status"] = "in else"
         files = await asyncio.to_thread(download_with_demerge, download_id, video_url)
         files_count = len(files)
         downloads_status[download_id]["files"] = files
@@ -293,7 +298,7 @@ def start_download():
         download_id = video_to_id[link]
         status_data = downloads_status.get(download_id, {"status": "pending"})
         status = status_data.get("status")
-        if status not in ["error"]:
+        if status not in ["done", "error"]:
             return jsonify({"download_id": download_id, "status": status_data})
 
     download_id = str(uuid.uuid4())
