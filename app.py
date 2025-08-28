@@ -143,13 +143,13 @@ async def download_and_send(download_id, video_url):
     message_id = await search_messages(CHANNEL_ID, base_id)
 
     if message_id: # لو الرسالة موجودة في القناة هات الروابط
-        msg_id = message_id[0]
-        files_count = int(message_id[1].split(" ")[-1])
-        ids = list(range(msg_id - files_count, msg_id))
+        msg_id = message_id[0] # 74
+        files_count = int(message_id[1].split(" ")[-1]) # 3
+        ids = list(range(msg_id - files_count, msg_id)) # [71, 72, 73] (آخر 3 رسائل)
 
         downloads_status[download_id] = {"status": "done downloading", "progress": 100, "files_count": files_count}
 
-        for id in ids:
+        for id_i, id in enumerate(ids):
             # إعادة توجيه الرسالة للبوت
             fwd_msg = await client.forward_messages(
                 BOT_ID,
@@ -164,7 +164,11 @@ async def download_and_send(download_id, video_url):
             downloads_status[download_id].setdefault("msg_map", {})[fwd_msg.id] = os.path.basename(file)
 
             print(f"📩 تم إعادة توجيه الملف للبوت: {file}")
-            await asyncio.sleep(1)
+            while True:
+                links_count = len(downloads_status[download_id].get("links", {}))
+                if links_count == id_i+1:  # اتأكد إن الروابط وصلت كلها
+                    break
+
 
         downloads_status[download_id]["status"] = "done"
     else: # لو مش موجودة نزل وقسّم وابعت وهات الروابط
