@@ -244,6 +244,10 @@ threading.Thread(target=start_telethon_loop, daemon=True).start()
 # ===== Flask API =====
 from asyncio import run_coroutine_threadsafe
 
+@app.route("/")
+def hello_page():
+    return "السلام عليكم ورحمة الله وبركاته"
+    
 @app.route("/url")
 def start_download():
     link = request.args.get("link")
