@@ -164,11 +164,11 @@ async def download_and_send(download_id, video_url):
             downloads_status[download_id].setdefault("msg_map", {})[fwd_msg.id] = os.path.basename(file)
 
             print(f"📩 تم إعادة توجيه الملف للبوت: {file}")
-            id_loop = True
-            while id_loop == True:
-                links_count = len(downloads_status[download_id].get("links", {}))
-                if links_count == id_i+1:  # اتأكد إن الروابط وصلت كلها
-                    id_loop = False
+            # id_loop = True
+            # while id_loop == True:
+            #     links_count = len(downloads_status[download_id].get("links", {}))
+            #     if links_count == id_i+1:  # اتأكد إن الروابط وصلت كلها
+            #         id_loop = False
 
 
         downloads_status[download_id]["status"] = "done"
