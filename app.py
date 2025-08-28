@@ -169,7 +169,7 @@ async def download_and_send(download_id, video_url):
                 links_count = len(downloads_status[download_id].get("links", {}))
                 if links_count == id_i+1:  # اتأكد إن الروابط وصلت كلها
                     id_loop = False
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.1)
 
 
         downloads_status[download_id]["status"] = "done"
