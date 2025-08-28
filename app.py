@@ -57,7 +57,7 @@ async def search_messages(channel: int, keyword):
         if keyword in message.text:
             print(f'[{message.id}]')
             return [message.id, message.text]
-    return None
+    return "None"
 
 async def auto_delete(download_id, wait_seconds=60):
     await asyncio.sleep(wait_seconds)
@@ -169,7 +169,7 @@ async def download_and_send(download_id, video_url):
     message_id = await search_messages(CHANNEL_ID, base_id)
     downloads_status[download_id]["status"] = "after msg id"
 
-    if message_id: # لو الرسالة موجودة في القناة هات الروابط
+    if message_id != "None": # لو الرسالة موجودة في القناة هات الروابط
         downloads_status[download_id]["status"] = "in if"
         msg_id = message_id[0] # 74
         files_count = int(message_id[1].split(" ")[-1]) # 3
