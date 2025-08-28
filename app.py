@@ -51,7 +51,9 @@ def get_duration(file_path):
     return float(result.stdout)
 
 async def search_messages(channel: int, keyword):
+    downloads_status[download_id]["status"] = f"in search"
     async for message in client.iter_messages(channel):
+        downloads_status[download_id]["status"] = f"in search id {message.id}"
         if keyword in message.text:
             print(f'[{message.id}]')
             return [message.id, message.text]
