@@ -271,7 +271,7 @@ def start_download():
             await asyncio.sleep(2)
 
         # دلوقتي ضيفه كـ "processing" بعد ما كله خلص
-        downloads_status[download_id] = {"status": "processing", "progress": 0, "files": []}
+        downloads_status[download_id] = {"status": "after wait", "progress": 0, "files": []}
         await download_and_send(download_id, link)
 
     run_coroutine_threadsafe(wait_and_run(), TELETHON_LOOP)
