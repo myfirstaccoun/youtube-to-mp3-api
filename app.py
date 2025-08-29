@@ -172,6 +172,7 @@ async def download_and_send(download_id, video_url):
     msg_id_loop = True
     async for message in client.iter_messages(CHANNEL_ID):
         downloads_status[download_id]["status"] = f"in search id {message.id}"
+        downloads_status[download_id]["status"] = f"in search {keyword} in {message.text}"
         if keyword in message.text and msg_id_loop == True:
             print(f'[{message.id}]')
             message_id = [message.id, message.text]
