@@ -80,7 +80,7 @@ async def auto_delete(download_id, wait_seconds=60):
         print(f"🗑️ Download ID {download_id} تم حذفه تلقائيًا بعد دقيقة")
 
 # ===== تنزيل وتقسيم =====
-عدل وهات def download_with_demerge(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
+def download_with_demerge(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
                           file_extension: str = file_ext, target_size: int = chunk_size,
                           file_start_num: int = start_num):
     """تحميل الفيديو وتقسيمه"""
