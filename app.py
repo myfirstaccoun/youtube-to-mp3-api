@@ -80,98 +80,193 @@ async def auto_delete(download_id, wait_seconds=60):
         print(f"🗑️ Download ID {download_id} تم حذفه تلقائيًا بعد دقيقة")
 
 # ===== تنزيل وتقسيم =====
+def convert_to_m4a_with_progress(src_path: str, dst_path: str, download_id: str):
+    """تحويل إلى m4a مع شريط تقدم حقيقي من ffmpeg"""
+    try:
+        total_duration = float(get_duration(src_path))  # بالثواني
+    except Exception:
+        total_duration = None
+
+    # نضمن وجود المجلد
+    os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+
+    # إعدادات الترميز: AAC 192kbps (m4a)
+    # -progress pipe:1 علشان نقرأ out_time_ms باستمرار
+    proc = subprocess.Popen(
+        [
+            "ffmpeg", "-y",
+            "-i", src_path,
+            "-vn",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-movflags", "+faststart",
+            "-progress", "pipe:1",
+            "-nostats",
+            dst_path,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        bufsize=1,
+        universal_newlines=True,
+    )
+
+    downloads_status[download_id]["status"] = "converting"
+    downloads_status[download_id]["phase"] = "converting"
+    downloads_status[download_id]["progress"] = 0.0
+
+    try:
+        for line in proc.stdout:
+            line = line.strip()
+            if line.startswith("out_time_ms=") and total_duration:
+                # out_time_ms بوحدة الميكروثانية
+                try:
+                    out_ms = int(line.split("=", 1)[1])
+                    out_sec = out_ms / 1_000_000.0
+                    pct = max(0.0, min(99.0, (out_sec / total_duration) * 100.0))
+                    downloads_status[download_id]["progress"] = pct
+                except Exception:
+                    pass
+            elif line == "progress=end":
+                downloads_status[download_id]["progress"] = 100.0
+
+        ret = proc.wait()
+        if ret != 0:
+            raise RuntimeError("ffmpeg conversion failed")
+    finally:
+        try:
+            if proc and proc.poll() is None:
+                proc.terminate()
+        except Exception:
+            pass
+
+
 def download_with_demerge(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
                           file_extension: str = file_ext, target_size: int = chunk_size,
                           file_start_num: int = start_num):
     """تحميل الفيديو وتقسيمه"""
-    downloads_status[download_id]["status"] = "in download"
-    base_id = video_url.split('=')[-1]
-
     downloads_status[download_id] = {"status": "processing", "progress": 0, "files": []}
 
-    # ==== تنزيل الصوت ====
+    # ==== تنزيل الصوت فقط مع شريط تقدم ====
     def progress_hook(d):
-        if d['status'] == 'downloading':
+        if d.get('status') == 'downloading':
             percent = d.get('_percent_str', '0%').replace('%', '')
             try:
+                downloads_status[download_id]["status"] = "downloading"
+                downloads_status[download_id]["phase"] = "downloading"
                 downloads_status[download_id]["progress"] = float(percent)
-            except:
+            except Exception:
                 pass
-        elif d['status'] == 'finished':
-            downloads_status[download_id]["progress"] = 100
+        elif d.get('status') == 'finished':
+            downloads_status[download_id]["status"] = "download finished"
+            downloads_status[download_id]["phase"] = "downloading"
+            downloads_status[download_id]["progress"] = 100.0
 
     ydl_opts = {
-        'format': 'bestaudio/best',
+        # نفضّل m4a لو متاح، وإلا نحمل أفضل صوت متاح
+        'format': 'bestaudio[ext=m4a]/bestaudio/best',
         'outtmpl': os.path.join(folder_path, '%(id)s.%(ext)s'),
         'progress_hooks': [progress_hook],
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': file_extension,
-            'preferredquality': '192',
-        }],
+        # مهم: بدون postprocessors — هنحوّل يدويًا علشان نعرض تقدم التحويل
     }
+
+    os.makedirs(folder_path, exist_ok=True)
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(video_url, download=True)
-        downloaded_file = os.path.join(folder_path, f"{info['id']}.{file_extension}")
-    
-    downloads_status[download_id]["status"] = "after download"
-                              
-    base_name = os.path.splitext(os.path.basename(downloaded_file))[0]
+
+    # مسار الملف اللي اتنزّل فعليًا بالامتداد الأصلي
+    downloaded_ext = info.get('ext')
+    downloaded_file = os.path.join(folder_path, f"{info['id']}.{downloaded_ext}")
+
+    # ==== تحويل إلى m4a مع تقدم خطوة بخطوة ====
+    # لو هو أصلًا m4a هنعدّي التحويل
+    if downloaded_ext.lower() != file_extension.lower():
+        converted_file = os.path.join(folder_path, f"{info['id']}.{file_extension}")
+        convert_to_m4a_with_progress(downloaded_file, converted_file, download_id)
+        # بعد التحويل نقدر نمسح الأصلي
+        try:
+            if os.path.exists(downloaded_file):
+                os.remove(downloaded_file)
+        except Exception:
+            pass
+        working_file = converted_file
+    else:
+        # مفيش تحويل مطلوب
+        downloads_status[download_id]["status"] = "after download"
+        downloads_status[download_id]["phase"] = "downloaded (no conversion)"
+        downloads_status[download_id]["progress"] = 100.0
+        working_file = downloaded_file
+
+    base_name = os.path.splitext(os.path.basename(working_file))[0]
     target_bytes = target_size * 1024 * 1024
-    file_size = os.path.getsize(downloaded_file)
-    
+    file_size = os.path.getsize(working_file)
+
     # ==== تقسيم الملف ====
+    # (لو عايز شريط تقدم للتقسيم كمان، ممكن نزوده لاحقًا)
     if file_size <= target_bytes:
-        downloads_status[download_id]["status"] = "after download 22"
-        
         # الملف صغير → خلي ملف واحد باسم ID_000.m4a
         new_name = os.path.join(folder_path, f"{base_name}_000.{file_extension}")
-        os.rename(downloaded_file, new_name)
+        if os.path.abspath(working_file) != os.path.abspath(new_name):
+            os.rename(working_file, new_name)
         final_files = [os.path.relpath(new_name, start=os.getcwd())]
     else:
         parts = max(1, math.ceil(file_size / target_bytes))
-        duration = get_duration(downloaded_file)
+        duration = get_duration(working_file)
         segment_time = duration / parts
-    
+
         output_pattern = os.path.join(folder_path, f"{base_name}_%03d.{file_extension}")
-    
+
         subprocess.run([
-            "ffmpeg", "-i", downloaded_file, "-c", "copy",
+            "ffmpeg", "-y",
+            "-i", working_file, "-c", "copy",
             "-map", "0", "-f", "segment",
             "-segment_time", str(segment_time),
             "-reset_timestamps", "1",
             "-start_number", str(file_start_num),
             output_pattern
-        ])
-    
+        ], check=False)
+
         i = file_start_num
         while True:
             part_file = os.path.join(folder_path, f"{base_name}_{i:03d}.{file_extension}")
             if not os.path.exists(part_file):
                 break
             if os.path.getsize(part_file) > target_bytes:
+                # تقسيم إضافي لو الجزء أكبر من الهدف
                 subprocess.run([
-                    "ffmpeg", "-i", part_file, "-c", "copy",
+                    "ffmpeg", "-y",
+                    "-i", part_file, "-c", "copy",
                     "-map", "0", "-f", "segment",
                     "-segment_time", str(segment_time / 2),
                     "-reset_timestamps", "1",
                     "-start_number", "1",
                     os.path.join(folder_path, f"{base_name}_splitted_%03d.{file_extension}")
-                ])
-                os.remove(part_file)
+                ], check=False)
+                try:
+                    os.remove(part_file)
+                except Exception:
+                    pass
             i += 1
-    
+
         final_files = sorted(glob.glob(os.path.join(folder_path, f"{base_name}_*.{file_extension}")))
         final_files = [os.path.relpath(f, start=os.getcwd()) for f in final_files]
-    
-        # ==== مسح الملف الأصلي بعد تقسيمه ====
-        if os.path.exists(downloaded_file):
-            os.remove(downloaded_file)
-    
-    downloads_status[download_id] = {"status": "done downloading", "progress": 100, "files": final_files}
+
+        # امسح الملف الأصلي بعد التقسيم
+        try:
+            if os.path.exists(working_file):
+                os.remove(working_file)
+        except Exception:
+            pass
+
+    downloads_status[download_id].update({
+        "status": "done downloading",
+        "phase": "done",
+        "progress": 100.0,
+        "files": final_files
+    })
     return final_files
-                              
+
 # ===== دالة إرسال الملفات للتيليجرام مع تقدم لكل ملف =====
 async def download_and_send(download_id, video_url):
     downloads_status[download_id]["status"] = "in send"
