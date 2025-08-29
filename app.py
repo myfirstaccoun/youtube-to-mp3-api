@@ -130,6 +130,8 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
         if not downloaded_file.endswith(f".{file_extension}"):
             downloaded_file = os.path.splitext(downloaded_file)[0] + f".{file_extension}"
 
+    downloads_status[download_id]["whole_file"] = [downloaded_file]
+
     # ==== حساب الحجم ====
     target_bytes = target_size * 1024 * 1024
     file_size = os.path.getsize(downloaded_file)
@@ -354,7 +356,7 @@ def start_download():
     download_id = str(uuid.uuid4())
     video_to_id[link] = download_id  # اربط الرابط بالـ ID
     downloads_status[download_id] = {"status": "after wait", "progress": 0, "files": []}
-    
+
     run_coroutine_threadsafe(download_and_send(download_id, link), TELETHON_LOOP)
 
     return jsonify({"download_id": download_id, "status": "queued"})
