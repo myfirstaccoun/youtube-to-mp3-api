@@ -305,8 +305,10 @@ async def download_and_send(download_id, video_url):
 
     if message_id != "None": # لو الرسالة موجودة في القناة هات الروابط
         downloads_status[download_id]["status"] = "in if"
+        msg_id = message_id[0] # 74
+        files_count = int(message_id[1].split(" ")[-1]) # 3
+        ids = list(range(msg_id - files_count, msg_id)) # [71, 72, 73] (آخر 3 رسائل)
         await send_files_recursive(download_id, ids)
-
 
         downloads_status[download_id]["status"] = "done"
         
