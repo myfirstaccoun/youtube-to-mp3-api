@@ -140,7 +140,7 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
             downloaded_file = os.path.splitext(downloaded_file)[0] + f".{file_extension}"
             downloads_status[download_id]["status"] = "in downloading 5"
 
-    downloads_status[download_id]["whole_file"] = downloaded_file
+    downloads_status[download_id]["whole_file"] = [downloaded_file.replace("./", "")]
 
     # ==== حساب الحجم ====
     target_bytes = target_size * 1024 * 1024
