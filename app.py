@@ -100,67 +100,74 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
         elif d['status'] == 'finished':
             downloads_status[download_id]["progress"] = 100
 
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': os.path.join(folder_path, '%(id)s.%(ext)s'),
-        'progress_hooks': [progress_hook],
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': file_extension,
-            'preferredquality': '192',
-        }],
-    }
+    if file_size <= target_bytes:
+        # الملف صغير → خلي ملف واحد باسم ID_000.m4a
+        new_name = os.path.join(folder_path, f"{base_name}_000.{file_extension}")
+        os.rename(downloaded_file, new_name)
+        final_files = [os.path.relpath(new_name, start=os.getcwd())]
+    else:
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': os.path.join(folder_path, '%(id)s.%(ext)s'),
+            'progress_hooks': [progress_hook],
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': file_extension,
+                'preferredquality': '192',
+            }],
+        }
+    
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(video_url, download=True)
+            downloaded_file = os.path.join(folder_path, f"{info['id']}.{file_extension}")
+    
+        # ==== تقسيم الملف ====
+        target_bytes = target_size * 1024 * 1024
+        file_size = os.path.getsize(downloaded_file)
+        parts = max(1, math.ceil(file_size / target_bytes))
+        duration = get_duration(downloaded_file)
+        segment_time = duration / parts
+    
+        base_name = os.path.splitext(os.path.basename(downloaded_file))[0]
+        output_pattern = os.path.join(folder_path, f"{base_name}_%03d.{file_extension}")
+    
+        subprocess.run([
+            "ffmpeg", "-i", downloaded_file, "-c", "copy",
+            "-map", "0", "-f", "segment",
+            "-segment_time", str(segment_time),
+            "-reset_timestamps", "1",
+            "-start_number", str(file_start_num),
+            output_pattern
+        ])
+    
+        i = file_start_num
+        while True:
+            part_file = os.path.join(folder_path, f"{base_name}_{i:03d}.{file_extension}")
+            if not os.path.exists(part_file):
+                break
+            if os.path.getsize(part_file) > target_bytes:
+                subprocess.run([
+                    "ffmpeg", "-i", part_file, "-c", "copy",
+                    "-map", "0", "-f", "segment",
+                    "-segment_time", str(segment_time / 2),
+                    "-reset_timestamps", "1",
+                    "-start_number", "1",
+                    os.path.join(folder_path, f"{base_name}_splitted_%03d.{file_extension}")
+                ])
+                os.remove(part_file)
+            i += 1
+    
+        final_files = sorted(glob.glob(os.path.join(folder_path, f"{base_name}_*.{file_extension}")))
+        final_files = [os.path.relpath(f, start=os.getcwd()) for f in final_files]
+    
+        # ==== مسح الملف الأصلي بعد تقسيمه ====
+        if os.path.exists(downloaded_file):
+            os.remove(downloaded_file)
+    
+        downloads_status[download_id] = {"status": "done downloading", "progress": 100, "files": final_files}
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(video_url, download=True)
-        downloaded_file = os.path.join(folder_path, f"{info['id']}.{file_extension}")
-
-    # ==== تقسيم الملف ====
-    target_bytes = target_size * 1024 * 1024
-    file_size = os.path.getsize(downloaded_file)
-    parts = max(1, math.ceil(file_size / target_bytes))
-    duration = get_duration(downloaded_file)
-    segment_time = duration / parts
-
-    base_name = os.path.splitext(os.path.basename(downloaded_file))[0]
-    output_pattern = os.path.join(folder_path, f"{base_name}_%03d.{file_extension}")
-
-    subprocess.run([
-        "ffmpeg", "-i", downloaded_file, "-c", "copy",
-        "-map", "0", "-f", "segment",
-        "-segment_time", str(segment_time),
-        "-reset_timestamps", "1",
-        "-start_number", str(file_start_num),
-        output_pattern
-    ])
-
-    i = file_start_num
-    while True:
-        part_file = os.path.join(folder_path, f"{base_name}_{i:03d}.{file_extension}")
-        if not os.path.exists(part_file):
-            break
-        if os.path.getsize(part_file) > target_bytes:
-            subprocess.run([
-                "ffmpeg", "-i", part_file, "-c", "copy",
-                "-map", "0", "-f", "segment",
-                "-segment_time", str(segment_time / 2),
-                "-reset_timestamps", "1",
-                "-start_number", "1",
-                os.path.join(folder_path, f"{base_name}_splitted_%03d.{file_extension}")
-            ])
-            os.remove(part_file)
-        i += 1
-
-    final_files = sorted(glob.glob(os.path.join(folder_path, f"{base_name}_*.{file_extension}")))
-    final_files = [os.path.relpath(f, start=os.getcwd()) for f in final_files]
-
-    # ==== مسح الملف الأصلي بعد تقسيمه ====
-    if os.path.exists(downloaded_file):
-        os.remove(downloaded_file)
-
-    downloads_status[download_id] = {"status": "done downloading", "progress": 100, "files": final_files}
     return final_files
-
+    
 # ===== دالة إرسال الملفات للتيليجرام مع تقدم لكل ملف =====
 async def download_and_send(download_id, video_url):
     downloads_status[download_id]["status"] = "in send"
