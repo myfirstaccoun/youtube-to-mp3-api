@@ -260,6 +260,39 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
     return final_files
 
 # ===== دالة إرسال الملفات للتيليجرام مع تقدم لكل ملف =====
+async def send_files_recursive(download_id, ids, index=0):
+    """إرسال الملفات للبوت واحد واحد بشكل متتابع"""
+
+    if index >= len(ids):
+        print("🎉 خلصت كل الملفات")
+        downloads_status[download_id]["status"] = "done 678"
+        downloads_status[download_id]["progress"] = 100
+        return
+
+    # الرسالة الحالية
+    id = ids[index]
+    message = await client.get_messages(CHANNEL_ID, ids=id)
+    file_name = message.file.name
+
+    # إعادة التوجيه للبوت
+    fwd_msg = await client.forward_messages(
+        BOT_ID,
+        id,
+        from_peer=CHANNEL_ID
+    )
+
+    # اربط رسالة الرد بالملف
+    downloads_status[download_id].setdefault("msg_map", {})[fwd_msg.id] = os.path.basename(file_name)
+
+    print(f"📩 بعت الملف رقم {index+1}/{len(ids)}: {file_name}")
+
+    # 🟢 استنى لحد ما يضاف الرابط
+    while file_name not in downloads_status[download_id].get("links", {}):
+        await asyncio.sleep(0.5)
+
+    # لما الرابط ييجي، ابعت اللي بعده
+    await send_files_recursive(download_id, ids, index + 1)
+
 async def download_and_send(download_id, video_url):
     downloads_status[download_id]["status"] = "in send"
     base_id = video_url.split('=')[-1]
@@ -272,33 +305,7 @@ async def download_and_send(download_id, video_url):
 
     if message_id != "None": # لو الرسالة موجودة في القناة هات الروابط
         downloads_status[download_id]["status"] = "in if"
-        msg_id = message_id[0] # 74
-        files_count = int(message_id[1].split(" ")[-1]) # 3
-        ids = list(range(msg_id - files_count, msg_id)) # [71, 72, 73] (آخر 3 رسائل)
-
-        downloads_status[download_id] = {"status": "done downloading", "progress": 100, "files_count": files_count}
-
-        for id_i, id in enumerate(ids):
-            # إعادة توجيه الرسالة للبوت
-            fwd_msg = await client.forward_messages(
-                BOT_ID,
-                id,
-                from_peer=CHANNEL_ID
-            )
-
-            # هنا بنربط الـ fwd_msg.id مع اسم الملف
-            message = await client.get_messages(CHANNEL_ID, ids=id)
-            file = message.file.name
-
-            downloads_status[download_id].setdefault("msg_map", {})[fwd_msg.id] = os.path.basename(file)
-
-            print(f"📩 تم إعادة توجيه الملف للبوت: {file}")
-            id_loop = True
-            while id_loop == True:
-                links_count = len(downloads_status[download_id].get("links", {}))
-                if links_count == id_i+1:  # اتأكد إن الروابط وصلت كلها
-                    id_loop = False
-                # await asyncio.sleep(0.3)
+        await send_files_recursive(download_id, ids)
 
 
         downloads_status[download_id]["status"] = "done"
