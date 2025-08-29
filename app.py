@@ -111,10 +111,13 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
             except:
                 pass
         elif d['status'] == 'finished':
+            downloads_status[download_id]["status"] = "finished"
             downloads_status[download_id]["progress"] = 100  # خلص التنزيل والتحويل
 
+    downloads_status[download_id]["status"] = "before downloading"
+
     ydl_opts = {
-        'format': 'bestaudio/best',
+        'format': 'bestaudio[ext=m4a]/bestaudio/best',
         'outtmpl': os.path.join(folder_path, '%(id)s.%(ext)s'),
         'progress_hooks': [progress_hook],
         'postprocessors': [{
@@ -124,11 +127,18 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
         }],
     }
 
+    downloads_status[download_id]["status"] = "before downloading 1"
+    
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        downloads_status[download_id]["status"] = "in downloading 1"
         info = ydl.extract_info(video_url, download=True)
+        downloads_status[download_id]["status"] = "in downloading 2"
         downloaded_file = ydl.prepare_filename(info)
+        downloads_status[download_id]["status"] = "in downloading 3"
         if not downloaded_file.endswith(f".{file_extension}"):
+            downloads_status[download_id]["status"] = "in downloading 4"
             downloaded_file = os.path.splitext(downloaded_file)[0] + f".{file_extension}"
+            downloads_status[download_id]["status"] = "in downloading 5"
 
     downloads_status[download_id]["whole_file"] = downloaded_file
 
