@@ -115,6 +115,7 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
         info = ydl.extract_info(video_url, download=True)
         downloaded_file = os.path.join(folder_path, f"{info['id']}.{file_extension}")
     
+    base_name = os.path.splitext(os.path.basename(downloaded_file))[0]
     target_bytes = target_size * 1024 * 1024
     file_size = os.path.getsize(downloaded_file)
     
@@ -129,7 +130,6 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
         duration = get_duration(downloaded_file)
         segment_time = duration / parts
     
-        base_name = os.path.splitext(os.path.basename(downloaded_file))[0]
         output_pattern = os.path.join(folder_path, f"{base_name}_%03d.{file_extension}")
     
         subprocess.run([
