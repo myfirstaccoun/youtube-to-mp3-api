@@ -165,6 +165,7 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
 async def download_and_send(download_id, video_url):
     downloads_status[download_id]["status"] = "in send"
     base_id = video_url.split('=')[-1]
+    keyword = base_id  # أو أي كلمة تبحث عنها في نص الرسالة
     downloads_status[download_id]["status"] = "in send 22"
     
     message_id = "None"
