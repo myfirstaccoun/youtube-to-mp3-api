@@ -100,6 +100,9 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
         elif d['status'] == 'finished':
             downloads_status[download_id]["progress"] = 100
 
+    target_bytes = target_size * 1024 * 1024
+    file_size = os.path.getsize(downloaded_file)
+    
     if file_size <= target_bytes:
         # الملف صغير → خلي ملف واحد باسم ID_000.m4a
         new_name = os.path.join(folder_path, f"{base_name}_000.{file_extension}")
@@ -122,8 +125,6 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
             downloaded_file = os.path.join(folder_path, f"{info['id']}.{file_extension}")
     
         # ==== تقسيم الملف ====
-        target_bytes = target_size * 1024 * 1024
-        file_size = os.path.getsize(downloaded_file)
         parts = max(1, math.ceil(file_size / target_bytes))
         duration = get_duration(downloaded_file)
         segment_time = duration / parts
