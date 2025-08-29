@@ -54,7 +54,7 @@ async def search_messages(channel: int, keyword: str, download_id: str):
     downloads_status[download_id]["status"] = f"in search"
     async for message in client.iter_messages(channel):
         downloads_status[download_id]["status"] = f"in search id {message.id}"
-        if keyword in message.text:
+        if message.text and keyword in message.text:
             print(f'[{message.id}]')
             return [message.id, message.text]
     return "None"
