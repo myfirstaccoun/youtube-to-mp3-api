@@ -111,6 +111,8 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
         }],
     }
 
+    downloads_status[download_id]["status"] = "after download"
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(video_url, download=True)
         downloaded_file = os.path.join(folder_path, f"{info['id']}.{file_extension}")
@@ -121,6 +123,8 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
     
     # ==== تقسيم الملف ====
     if file_size <= target_bytes:
+        downloads_status[download_id]["status"] = "after download 22"
+        
         # الملف صغير → خلي ملف واحد باسم ID_000.m4a
         new_name = os.path.join(folder_path, f"{base_name}_000.{file_extension}")
         os.rename(downloaded_file, new_name)
