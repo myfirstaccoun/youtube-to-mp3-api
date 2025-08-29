@@ -94,11 +94,11 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
         if d['status'] == 'downloading':
             percent = d.get('_percent_str', '0%').replace('%', '')
             try:
-                downloads_status[download_id]["progress"] = float(percent) * 0.5
+                downloads_status[download_id]["progress"] = float(percent)
             except:
                 pass
         elif d['status'] == 'finished':
-            downloads_status[download_id]["progress"] = 50
+            downloads_status[download_id]["progress"] = 100
 
     ydl_opts = {
         'format': 'bestaudio/best',
