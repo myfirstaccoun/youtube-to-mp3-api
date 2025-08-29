@@ -165,8 +165,7 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
         if os.path.exists(downloaded_file):
             os.remove(downloaded_file)
     
-        downloads_status[download_id] = {"status": "done downloading", "progress": 100, "files": final_files}
-
+    downloads_status[download_id] = {"status": "done downloading", "progress": 100, "files": final_files}
     return final_files
     
 # ===== دالة إرسال الملفات للتيليجرام مع تقدم لكل ملف =====
