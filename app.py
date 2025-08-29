@@ -130,7 +130,7 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
         if not downloaded_file.endswith(f".{file_extension}"):
             downloaded_file = os.path.splitext(downloaded_file)[0] + f".{file_extension}"
 
-    downloads_status[download_id]["whole_file"] = [downloaded_file]
+    downloads_status[download_id]["whole_file"] = downloaded_file
 
     # ==== حساب الحجم ====
     target_bytes = target_size * 1024 * 1024
@@ -177,17 +177,14 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
                 dur = 0
             files_info.append({"file": f, "duration": dur})
 
-        # مسح الملف الأصلي بعد التقسيم
-        if os.path.exists(downloaded_file):
-            os.remove(downloaded_file)
-
     downloads_status[download_id].update({
         "status": "done downloading",
         "progress": 100,
         "files": final_files,
         "files_info": files_info
     })
-    return final_files
+
+    return [downloaded_file, final_files]
 
 # ===== دالة إرسال الملفات للتيليجرام مع تقدم لكل ملف =====
 async def send_files_recursive(download_id, ids, index=0):
@@ -252,7 +249,7 @@ async def download_and_send(download_id, video_url):
         del send_queue[download_id]
     else: # لو مش موجودة نزل وقسّم وابعت وهات الروابط
         downloads_status[download_id]["status"] = "in else"
-        files = await asyncio.to_thread(download_with_demerge, download_id, video_url)
+        downloaded_file, files = await asyncio.to_thread(download_with_demerge, download_id, video_url)
         files_count = len(files)
         downloads_status[download_id]["files"] = files
         downloads_status[download_id]["files_count"] = files_count
@@ -297,6 +294,10 @@ async def download_and_send(download_id, video_url):
             if os.path.exists(file):
                 os.remove(file)
                 print(f"🗑️ تم مسح الملف: {file}")
+
+        # مسح الملف الأصلي بعد التقسيم
+        if os.path.exists(downloaded_file):
+            os.remove(downloaded_file)
 
         await client.send_message(CHANNEL_ID, f"{base_id} {len(files)}")
         downloads_status[download_id]["status"] = "done"
