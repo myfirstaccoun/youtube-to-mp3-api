@@ -168,22 +168,7 @@ async def download_and_send(download_id, video_url):
     keyword = base_id  # أو أي كلمة تبحث عنها في نص الرسالة
     downloads_status[download_id]["status"] = "in send 22"
     
-    message_id = "None"
-    downloads_status[download_id]["status"] = f"in search"
-    msg_id_loop = True
-    async for message in client.iter_messages(CHANNEL_ID):
-        downloads_status[download_id]["status"] = f"in search id {message.id}"
-        try: downloads_status[download_id]["status"] = f"in search key {keyword}"
-        except: downloads_status[download_id]["status"] = f"in search error key"
-        
-        # try: downloads_status[download_id]["status"] = f"in search text {message.text}"
-        # except: downloads_status[download_id]["status"] = f"in search error text"
-        
-        if keyword in message.text and msg_id_loop == True:
-            print(f'[{message.id}]')
-            message_id = [message.id, message.text]
-            msg_id_loop = False
-            break
+    message_id = await search_messages(CHANNEL_ID, keyword)
 
     downloads_status[download_id]["status"] = "after msg id"
 
