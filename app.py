@@ -175,8 +175,8 @@ async def download_and_send(download_id, video_url):
         try: downloads_status[download_id]["status"] = f"in search key {keyword}"
         except: downloads_status[download_id]["status"] = f"in search error key"
         
-        try: downloads_status[download_id]["status"] = f"in search text {message.text}"
-        except: downloads_status[download_id]["status"] = f"in search error text"
+        # try: downloads_status[download_id]["status"] = f"in search text {message.text}"
+        # except: downloads_status[download_id]["status"] = f"in search error text"
         
         if keyword in message.text and msg_id_loop == True:
             print(f'[{message.id}]')
