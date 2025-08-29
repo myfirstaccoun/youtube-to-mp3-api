@@ -353,18 +353,8 @@ def start_download():
 
     download_id = str(uuid.uuid4())
     video_to_id[link] = download_id  # اربط الرابط بالـ ID
-
-    # async def wait_and_run():
-    #     # استنى لغاية ما كله يبقى done أو error
-    #     while not all(item["status"] in ["done", "error"] for item in downloads_status.values()):
-    #         await asyncio.sleep(2)
-
-    #     # دلوقتي ضيفه كـ "processing" بعد ما كله خلص
-    #     downloads_status[download_id] = {"status": "after wait", "progress": 0, "files": []}
-    #     await download_and_send(download_id, link)
-
-    # run_coroutine_threadsafe(wait_and_run(), TELETHON_LOOP)
-
+    downloads_status[download_id] = {"status": "after wait", "progress": 0, "files": []}
+    
     run_coroutine_threadsafe(download_and_send(download_id, link), TELETHON_LOOP)
 
     return jsonify({"download_id": download_id, "status": "queued"})
