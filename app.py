@@ -80,64 +80,6 @@ async def auto_delete(download_id, wait_seconds=60):
         print(f"🗑️ Download ID {download_id} تم حذفه تلقائيًا بعد دقيقة")
 
 # ===== تنزيل وتقسيم =====
-def convert_to_m4a_with_progress(src_path: str, dst_path: str, download_id: str):
-    """تحويل إلى m4a مع شريط تقدم محسوب ضمن 30% الأخيرة"""
-    try:
-        total_duration = float(get_duration(src_path))  # بالثواني
-    except Exception:
-        total_duration = None
-
-    os.makedirs(os.path.dirname(dst_path), exist_ok=True)
-
-    proc = subprocess.Popen(
-        [
-            "ffmpeg", "-y",
-            "-i", src_path,
-            "-vn",
-            "-c:a", "aac",
-            "-b:a", "192k",
-            "-movflags", "+faststart",
-            "-progress", "pipe:1",
-            "-nostats",
-            dst_path,
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        text=True,
-        bufsize=1,
-        universal_newlines=True,
-    )
-
-    downloads_status[download_id]["status"] = "converting"
-    downloads_status[download_id]["phase"] = "converting"
-
-    try:
-        for line in proc.stdout:
-            line = line.strip()
-            if line.startswith("out_time_ms=") and total_duration:
-                try:
-                    out_ms = int(line.split("=", 1)[1])
-                    out_sec = out_ms / 1_000_000.0
-                    pct = (out_sec / total_duration) * 100.0
-                    pct = max(0.0, min(100.0, pct))
-                    # التحويل يساوي 25% من الإجمالي (70 -> 95)
-                    downloads_status[download_id]["progress"] = 70.0 + (pct * 0.25)
-                except Exception:
-                    pass
-            elif line == "progress=end":
-                downloads_status[download_id]["progress"] = 95.0
-
-        ret = proc.wait()
-        if ret != 0:
-            raise RuntimeError("ffmpeg conversion failed")
-    finally:
-        try:
-            if proc and proc.poll() is None:
-                proc.terminate()
-        except Exception:
-            pass
-
-
 def download_with_demerge(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
                           file_extension: str = file_ext, target_size: int = chunk_size,
                           file_start_num: int = start_num):
@@ -172,41 +114,54 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
         if not downloaded_file.endswith(f".{file_extension}"):
             downloaded_file = os.path.splitext(downloaded_file)[0] + f".{file_extension}"
 
-    # ==== تقسيم الملف ====
+    # ==== حساب الحجم ====
     target_bytes = target_size * 1024 * 1024
     file_size = os.path.getsize(downloaded_file)
-    parts = max(1, math.ceil(file_size / target_bytes))
-    duration = get_duration(downloaded_file)
-    segment_time = duration / parts
 
     base_name = os.path.splitext(os.path.basename(downloaded_file))[0]
-    output_pattern = os.path.join(folder_path, f"{base_name}_%03d.{file_extension}")
 
-    subprocess.run([
-        "ffmpeg", "-i", downloaded_file, "-c", "copy",
-        "-map", "0", "-f", "segment",
-        "-segment_time", str(segment_time),
-        "-reset_timestamps", "1",
-        "-start_number", str(file_start_num),
-        output_pattern
-    ])
-
-    # === تجميع الملفات الناتجة ===
-    final_files = sorted(glob.glob(os.path.join(folder_path, f"{base_name}_*.{file_extension}")))
-    final_files = [os.path.relpath(f, start=os.getcwd()) for f in final_files]
-
-    # ==== جمع الـ duration لكل ملف ====
+    final_files = []
     files_info = []
-    for f in final_files:
+
+    if file_size <= target_bytes:
+        # 🔹 الملف أصغر من الحد → إعادة تسميته فقط
+        new_name = os.path.join(folder_path, f"{base_name}_{file_start_num:03d}.{file_extension}")
+        os.rename(downloaded_file, new_name)
+        final_files = [os.path.relpath(new_name, start=os.getcwd())]
         try:
-            dur = int(get_duration(f))
+            dur = int(get_duration(new_name))
         except:
             dur = 0
-        files_info.append({"file": f, "duration": dur})
+        files_info = [{"file": final_files[0], "duration": dur}]
+    else:
+        # 🔹 الملف أكبر → تقسيمه
+        duration = get_duration(downloaded_file)
+        parts = max(1, math.ceil(file_size / target_bytes))
+        segment_time = duration / parts
+        output_pattern = os.path.join(folder_path, f"{base_name}_%03d.{file_extension}")
 
-    # ==== مسح الملف الأصلي بعد التقسيم ====
-    if os.path.exists(downloaded_file):
-        os.remove(downloaded_file)
+        subprocess.run([
+            "ffmpeg", "-i", downloaded_file, "-c", "copy",
+            "-map", "0", "-f", "segment",
+            "-segment_time", str(segment_time),
+            "-reset_timestamps", "1",
+            "-start_number", str(file_start_num),
+            output_pattern
+        ])
+
+        final_files = sorted(glob.glob(os.path.join(folder_path, f"{base_name}_*.{file_extension}")))
+        final_files = [os.path.relpath(f, start=os.getcwd()) for f in final_files]
+
+        for f in final_files:
+            try:
+                dur = int(get_duration(f))
+            except:
+                dur = 0
+            files_info.append({"file": f, "duration": dur})
+
+        # مسح الملف الأصلي بعد التقسيم
+        if os.path.exists(downloaded_file):
+            os.remove(downloaded_file)
 
     downloads_status[download_id].update({
         "status": "done downloading",
