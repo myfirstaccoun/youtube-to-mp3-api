@@ -183,6 +183,7 @@ async def download_and_send(download_id, video_url):
             print(f'[{message.id}]')
             message_id = [message.id, message.text]
             msg_id_loop = False
+            break
 
     downloads_status[download_id]["status"] = "after msg id"
 
