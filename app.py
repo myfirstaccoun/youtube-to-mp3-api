@@ -80,34 +80,13 @@ async def auto_delete(download_id, wait_seconds=60):
         print(f"🗑️ Download ID {download_id} تم حذفه تلقائيًا بعد دقيقة")
 
 # ===== تنزيل وتقسيم =====
-import re
-import subprocess
-import math
-import os
-import glob
-import yt_dlp
-
-def run_ffmpeg_with_progress(cmd, download_id, total_duration):
-    """تشغيل ffmpeg مع تتبع نسبة التقدم"""
-    process = subprocess.Popen(cmd, stderr=subprocess.PIPE, universal_newlines=True)
-    time_regex = re.compile(r'time=(\d+):(\d+):(\d+\.\d+)')
-
-    for line in process.stderr:
-        match = time_regex.search(line)
-        if match:
-            h, m, s = match.groups()
-            seconds = int(h) * 3600 + int(m) * 60 + float(s)
-            percent = min(100, (seconds / total_duration) * 100)
-            downloads_status[download_id]["progress"] = round(percent, 2)
-            downloads_status[download_id]["status"] = "splitting"
-
-    process.wait()
-
-
-def download_with_demerge(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
+عدل وهات def download_with_demerge(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
                           file_extension: str = file_ext, target_size: int = chunk_size,
                           file_start_num: int = start_num):
     """تحميل الفيديو وتقسيمه"""
+    downloads_status[download_id]["status"] = "in download"
+    base_id = video_url.split('=')[-1]
+
     downloads_status[download_id] = {"status": "processing", "progress": 0, "files": []}
 
     # ==== تنزيل الصوت ====
@@ -116,12 +95,10 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
             percent = d.get('_percent_str', '0%').replace('%', '')
             try:
                 downloads_status[download_id]["progress"] = float(percent)
-                downloads_status[download_id]["status"] = "in download"
             except:
                 pass
         elif d['status'] == 'finished':
             downloads_status[download_id]["progress"] = 100
-            downloads_status[download_id]["status"] = "after download"
 
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -137,13 +114,17 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(video_url, download=True)
         downloaded_file = os.path.join(folder_path, f"{info['id']}.{file_extension}")
-
+    
+    downloads_status[download_id]["status"] = "after download"
+                              
     base_name = os.path.splitext(os.path.basename(downloaded_file))[0]
     target_bytes = target_size * 1024 * 1024
     file_size = os.path.getsize(downloaded_file)
-
+    
     # ==== تقسيم الملف ====
     if file_size <= target_bytes:
+        downloads_status[download_id]["status"] = "after download 22"
+        
         # الملف صغير → خلي ملف واحد باسم ID_000.m4a
         new_name = os.path.join(folder_path, f"{base_name}_000.{file_extension}")
         os.rename(downloaded_file, new_name)
@@ -152,48 +133,45 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
         parts = max(1, math.ceil(file_size / target_bytes))
         duration = get_duration(downloaded_file)
         segment_time = duration / parts
-
+    
         output_pattern = os.path.join(folder_path, f"{base_name}_%03d.{file_extension}")
-
-        # تشغيل ffmpeg مع تتبع progress
-        run_ffmpeg_with_progress([
+    
+        subprocess.run([
             "ffmpeg", "-i", downloaded_file, "-c", "copy",
             "-map", "0", "-f", "segment",
             "-segment_time", str(segment_time),
             "-reset_timestamps", "1",
             "-start_number", str(file_start_num),
             output_pattern
-        ], download_id, duration)
-
-        # لو أي ملف طلع أكبر من target → قسمه نصين
+        ])
+    
         i = file_start_num
         while True:
             part_file = os.path.join(folder_path, f"{base_name}_{i:03d}.{file_extension}")
             if not os.path.exists(part_file):
                 break
             if os.path.getsize(part_file) > target_bytes:
-                run_ffmpeg_with_progress([
+                subprocess.run([
                     "ffmpeg", "-i", part_file, "-c", "copy",
                     "-map", "0", "-f", "segment",
                     "-segment_time", str(segment_time / 2),
                     "-reset_timestamps", "1",
                     "-start_number", "1",
                     os.path.join(folder_path, f"{base_name}_splitted_%03d.{file_extension}")
-                ], download_id, duration)
+                ])
                 os.remove(part_file)
             i += 1
-
+    
         final_files = sorted(glob.glob(os.path.join(folder_path, f"{base_name}_*.{file_extension}")))
         final_files = [os.path.relpath(f, start=os.getcwd()) for f in final_files]
-
+    
         # ==== مسح الملف الأصلي بعد تقسيمه ====
         if os.path.exists(downloaded_file):
             os.remove(downloaded_file)
-
+    
     downloads_status[download_id] = {"status": "done downloading", "progress": 100, "files": final_files}
     return final_files
-
-    
+                              
 # ===== دالة إرسال الملفات للتيليجرام مع تقدم لكل ملف =====
 async def download_and_send(download_id, video_url):
     downloads_status[download_id]["status"] = "in send"
