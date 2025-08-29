@@ -5,6 +5,7 @@ import yt_dlp
 import subprocess
 import uuid
 import asyncio
+from asyncio import run_coroutine_threadsafe
 import threading
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -33,6 +34,9 @@ start_num = 0
 downloads_status = {}
 video_to_id = {}  # جديد: يربط الفيديو بالـ download_id
 
+queue_num = 1
+send_queue = {} # {"download_id": {status: "sending|done", queue_num: 1}} --> when done delete from here, priority for least queue_num
+
 # ===== إنشاء عميل Telethon =====
 client = TelegramClient(SESSION_FILE, API_ID, API_HASH)
 
@@ -59,7 +63,7 @@ async def search_messages(channel: int, keyword: str, download_id: str):
             return [message.id, message.text]
     return "None"
 
-async def auto_delete(download_id, wait_seconds=60):
+async def auto_delete(download_id, wait_seconds=3600):
     await asyncio.sleep(wait_seconds)
     # لو لسه موجود بعد دقيقة
     if download_id in downloads_status:
@@ -78,6 +82,18 @@ async def auto_delete(download_id, wait_seconds=60):
         # حذف من downloads_status
         del downloads_status[download_id]
         print(f"🗑️ Download ID {download_id} تم حذفه تلقائيًا بعد دقيقة")
+
+def get_min_item(obj: dict, key: str = "queue_num"):
+    """
+    {
+        "id1": {"queue_num": 41},
+        "id2": {"queue_num": 75},
+        "id3": {"queue_num": 10},
+        "id4": {"queue_num": 96}
+    }
+    """
+
+    return min(obj, key=lambda k: obj[k][key])
 
 # ===== تنزيل وتقسيم =====
 def download_with_demerge(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
@@ -206,6 +222,8 @@ async def send_files_recursive(download_id, ids, index=0):
     await send_files_recursive(download_id, ids, index + 1)
 
 async def download_and_send(download_id, video_url):
+    global queue_num
+
     downloads_status[download_id]["status"] = "in send"
     base_id = video_url.split('=')[-1]
     keyword = base_id  # أو أي كلمة تبحث عنها في نص الرسالة
@@ -215,23 +233,30 @@ async def download_and_send(download_id, video_url):
 
     downloads_status[download_id]["status"] = "after msg id"
 
+    send_queue[download_id] = {"status": "sending", "queue_num": queue_num}
+    queue_num += 1
+
     if message_id != "None": # لو الرسالة موجودة في القناة هات الروابط
         downloads_status[download_id]["status"] = "in if"
         msg_id = message_id[0] # 74
         files_count = int(message_id[1].split(" ")[-1]) # 3
         ids = list(range(msg_id - files_count, msg_id)) # [71, 72, 73] (آخر 3 رسائل)
-        await send_files_recursive(download_id, ids)
-
-        downloads_status[download_id]["status"] = "done"
         
-        # تشغيل المهمة بدون انتظار في نفس الـ loop
-        asyncio.create_task(auto_delete(download_id))
+        while (len(send_queue) == 0 or get_min_item(send_queue) == download_id) == False:
+            await asyncio.sleep(5)
+
+        await send_files_recursive(download_id, ids)
+        downloads_status[download_id]["status"] = "done"
+        del send_queue[download_id]
     else: # لو مش موجودة نزل وقسّم وابعت وهات الروابط
         downloads_status[download_id]["status"] = "in else"
         files = await asyncio.to_thread(download_with_demerge, download_id, video_url)
         files_count = len(files)
         downloads_status[download_id]["files"] = files
         downloads_status[download_id]["files_count"] = files_count
+
+        while (len(send_queue) == 0 or get_min_item(send_queue) == download_id) == False:
+            await asyncio.sleep(5)
 
         for i, file in enumerate(files):
             duration = int(get_duration(file))
@@ -273,10 +298,12 @@ async def download_and_send(download_id, video_url):
 
         await client.send_message(CHANNEL_ID, f"{base_id} {len(files)}")
         downloads_status[download_id]["status"] = "done"
-        
-        # تشغيل المهمة بدون انتظار في نفس الـ loop
-        asyncio.create_task(auto_delete(download_id))
-        
+
+        del send_queue[download_id]
+    
+    # تشغيل المهمة بدون انتظار في نفس الـ loop
+    asyncio.create_task(auto_delete(download_id))
+
 @client.on(events.NewMessage(from_users=BOT_ID))
 async def handler(event):
     if event.is_reply:
@@ -306,8 +333,6 @@ def start_telethon_loop():
 threading.Thread(target=start_telethon_loop, daemon=True).start()
 
 # ===== Flask API =====
-from asyncio import run_coroutine_threadsafe
-
 @app.route("/")
 def hello_page():
     return "السلام عليكم ورحمة الله وبركاته"
@@ -323,22 +348,24 @@ def start_download():
         download_id = video_to_id[link]
         status_data = downloads_status.get(download_id, {"status": "pending"})
         status = status_data.get("status")
-        if status not in ["done", "error"]:
+        if status not in ["error"]:
             return jsonify({"download_id": download_id, "status": status_data})
 
     download_id = str(uuid.uuid4())
     video_to_id[link] = download_id  # اربط الرابط بالـ ID
 
-    async def wait_and_run():
-        # استنى لغاية ما كله يبقى done أو error
-        while not all(item["status"] in ["done", "error"] for item in downloads_status.values()):
-            await asyncio.sleep(2)
+    # async def wait_and_run():
+    #     # استنى لغاية ما كله يبقى done أو error
+    #     while not all(item["status"] in ["done", "error"] for item in downloads_status.values()):
+    #         await asyncio.sleep(2)
 
-        # دلوقتي ضيفه كـ "processing" بعد ما كله خلص
-        downloads_status[download_id] = {"status": "after wait", "progress": 0, "files": []}
-        await download_and_send(download_id, link)
+    #     # دلوقتي ضيفه كـ "processing" بعد ما كله خلص
+    #     downloads_status[download_id] = {"status": "after wait", "progress": 0, "files": []}
+    #     await download_and_send(download_id, link)
 
-    run_coroutine_threadsafe(wait_and_run(), TELETHON_LOOP)
+    # run_coroutine_threadsafe(wait_and_run(), TELETHON_LOOP)
+
+    run_coroutine_threadsafe(download_and_send(download_id, link), TELETHON_LOOP)
 
     return jsonify({"download_id": download_id, "status": "queued"})
 
