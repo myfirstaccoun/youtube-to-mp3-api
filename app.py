@@ -50,7 +50,7 @@ def get_duration(file_path):
     )
     return float(result.stdout)
 
-async def search_messages(channel: int, keyword):
+async def search_messages(channel: int, keyword: str, download_id: str):
     downloads_status[download_id]["status"] = f"in search"
     async for message in client.iter_messages(channel):
         downloads_status[download_id]["status"] = f"in search id {message.id}"
@@ -168,7 +168,7 @@ async def download_and_send(download_id, video_url):
     keyword = base_id  # أو أي كلمة تبحث عنها في نص الرسالة
     downloads_status[download_id]["status"] = "in send 22"
     
-    message_id = await search_messages(CHANNEL_ID, keyword)
+    message_id = await search_messages(CHANNEL_ID, keyword, download_id)
 
     downloads_status[download_id]["status"] = "after msg id"
 
