@@ -20,7 +20,7 @@ CORS(app)
 API_ID = 29224979
 API_HASH = 'c43959fea9767802e111a4c6cf3b16ec'
 SESSION_FILE = 'session_name.session'
-CHANNEL_ID = -1002765670994
+CHANNEL_ID = -1002990796797
 BOT_ID = "@sending_files_bot"
 
 # ===== إعدادات التحميل =====
