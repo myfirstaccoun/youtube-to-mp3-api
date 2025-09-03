@@ -232,7 +232,7 @@ async def send_files_recursive(download_id, ids, index=0):
 
     # 🟢 استنى لحد ما يضاف الرابط
     while file_name not in downloads_status[download_id].get("links", {}):
-        await asyncio.sleep(random.uniform(2.5, 4.5))
+        await asyncio.sleep(random.uniform(5, 7))
 
     # لما الرابط ييجي، ابعت اللي بعده
     await send_files_recursive(download_id, ids, index + 1)
