@@ -18,11 +18,16 @@ app = Flask(__name__)
 CORS(app)
 
 # ===== إعدادات Telethon =====
-API_ID = 29224979
-API_HASH = 'c43959fea9767802e111a4c6cf3b16ec'
+API_ID = 25617131
+API_HASH = '882b0647556a7b8faeac93962ad8aeb9'
 SESSION_FILE = 'session_name.session'
-CHANNEL_ID = -1002990796797
-BOT_ID = "@sending_files_bot"
+CHANNEL_ID = -1003073946092
+BOT_ID = "@sending_files_links_bot"
+# API_ID = 29224979
+# API_HASH = 'c43959fea9767802e111a4c6cf3b16ec'
+# SESSION_FILE = 'session_name.session'
+# CHANNEL_ID = -1002990796797
+# BOT_ID = "@sending_files_bot"
 
 # ===== إعدادات التحميل =====
 FOLDER_PATH = './downloads/'
