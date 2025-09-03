@@ -206,11 +206,6 @@ def download_with_demerge(download_id: str, video_url: str, folder_path: str = F
 async def send_files_recursive(download_id, ids, index=0):
     """إرسال الملفات للبوت واحد واحد بشكل متتابع"""
 
-    if index >= len(ids):
-        print("🎉 خلصت كل الملفات")
-        downloads_status[download_id]["status"] = "done 678"
-        downloads_status[download_id]["progress"] = 100
-        return
 
     # الرسالة الحالية
     id = ids[index]
@@ -234,8 +229,14 @@ async def send_files_recursive(download_id, ids, index=0):
     while file_name not in downloads_status[download_id].get("links", {}):
         await asyncio.sleep(random.uniform(5, 7))
 
-    # لما الرابط ييجي، ابعت اللي بعده
-    await send_files_recursive(download_id, ids, index + 1)
+    if index + 1 >= len(ids):
+        print("🎉 خلصت كل الملفات")
+        downloads_status[download_id]["status"] = "done 678"
+        downloads_status[download_id]["progress"] = 100
+        return
+    else:
+        # لما الرابط ييجي، ابعت اللي بعده
+        await send_files_recursive(download_id, ids, index + 1)
 
 async def download_and_send(download_id, video_url):
     global queue_num
