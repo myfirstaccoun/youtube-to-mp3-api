@@ -221,11 +221,12 @@ async def send_files_recursive(download_id, ids, index=0):
     # اربط رسالة الرد بالملف
     downloads_status[download_id].setdefault("msg_map", {})[fwd_msg.id] = os.path.basename(file_name)
 
+    downloads_status[download_id]["progress"] = ((index+1) / len(ids)) * 100
     print(f"📩 بعت الملف رقم {index+1}/{len(ids)}: {file_name}")
 
     # 🟢 استنى لحد ما يضاف الرابط
     while file_name not in downloads_status[download_id].get("links", {}):
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(3)
 
     # لما الرابط ييجي، ابعت اللي بعده
     await send_files_recursive(download_id, ids, index + 1)
