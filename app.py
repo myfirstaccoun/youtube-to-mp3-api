@@ -11,6 +11,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from telethon import TelegramClient, events
 from telethon.tl.types import DocumentAttributeAudio
+import random
 
 # ===== إعدادات Flask =====
 app = Flask(__name__)
@@ -226,7 +227,7 @@ async def send_files_recursive(download_id, ids, index=0):
 
     # 🟢 استنى لحد ما يضاف الرابط
     while file_name not in downloads_status[download_id].get("links", {}):
-        await asyncio.sleep(3)
+        await asyncio.sleep(random.uniform(2.5, 4.5))
 
     # لما الرابط ييجي، ابعت اللي بعده
     await send_files_recursive(download_id, ids, index + 1)
