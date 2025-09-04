@@ -110,7 +110,7 @@ def hello_page():
 @app.route("/url")
 def start_download():
     link = request.args.get("link")
-    if not link:
+    if not link or "null" in link.lower().strip():
         return jsonify({"error": "يرجى إدخال رابط"}), 400
 
     # لو الفيديو ده جاري تحميله أو اتحمل بالفعل → رجع نفس الـ download_id
