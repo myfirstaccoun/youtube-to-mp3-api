@@ -21,6 +21,104 @@ start_num = 0
 downloads_status = {}
 video_to_id = {}  # جديد: يربط الفيديو بالـ download_id
 
+# ===== المعلومات =====
+def get_channel_videos(channel_url: str, links: bool = True, titles: bool = True) -> list[dict]:
+    """
+    ترجع قائمة فيديوهات قناة يوتيوب.
+    
+    Args:
+        channel_url (str): رابط القناة (مثلاً https://www.youtube.com/@Waie/videos)
+        links (bool): لو True ترجع الرابط
+        titles (bool): لو True ترجع العنوان
+    
+    Returns:
+        list[dict]: قائمة من القواميس بالشكل {"link": ..., "title": ...}
+    """
+    if not (links or titles):
+        raise ValueError("لازم تحدد links أو titles على الأقل True")
+    
+    ydl_opts = {
+        'extract_flat': True,  # نجيب روابط الفيديوهات فقط من صفحة القناة
+    }
+    
+    result = []
+    
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(channel_url, download=False)
+        for entry in info['entries']:
+            video_data = {}
+            if links:
+                video_data['link'] = f"https://www.youtube.com/watch?v={entry['id']}"
+            if titles:
+                video_data['title'] = entry['title']
+            result.append(video_data)
+    
+    return result
+
+def get_playlist_videos(playlist_url: str, links: bool = True, titles: bool = True) -> list[dict]:
+    """
+    ترجع قائمة فيديوهات بلايليست يوتيوب.
+    
+    Args:
+        playlist_url (str): رابط البلايليست
+        links (bool): لو True ترجع الرابط
+        titles (bool): لو True ترجع العنوان
+    
+    Returns:
+        list[dict]: قائمة من القواميس بالشكل {"link": ..., "title": ...}
+    """
+    if not (links or titles):
+        raise ValueError("لازم تحدد links أو titles على الأقل True")
+    
+    ydl_opts = {
+        'extract_flat': True,  # نجيب روابط الفيديوهات فقط من البلايليست
+    }
+    
+    result = []
+    
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(playlist_url, download=False)
+        for entry in info['entries']:
+            video_data = {}
+            if links:
+                video_data['link'] = f"https://www.youtube.com/watch?v={entry['id']}"
+            if titles:
+                video_data['title'] = entry['title']
+            result.append(video_data)
+    
+    return result
+
+def get_video_info(link: str, title: bool = True, description: bool = True) -> dict:
+    """
+    ترجع معلومات فيديو يوتيوب.
+    
+    Args:
+        link (str): رابط الفيديو
+        title (bool): لو True ترجع العنوان
+        description (bool): لو True ترجع الوصف
+    
+    Returns:
+        dict: قاموس يحتوي على {"title": ..., "description": ...} حسب الخيارات
+    """
+    if not (title or description):
+        raise ValueError("لازم تحدد title أو description على الأقل True")
+    
+    ydl_opts = {
+        'quiet': True,  # منع الطباعة على الكونسول
+        'skip_download': True,  # مش هننزل الفيديو
+    }
+    
+    result = {}
+    
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(link, download=False)
+        if title:
+            result['title'] = info.get('title', '')
+        if description:
+            result['description'] = info.get('description', '')
+    
+    return result
+
 # ===== دوال مساعدة =====
 async def auto_delete(download_id, wait_seconds=3600*8):
     await asyncio.sleep(wait_seconds)
@@ -110,7 +208,7 @@ def hello_page():
 @app.route("/url")
 def start_download():
     link = request.args.get("link")
-    if not link or "null" in link.lower().strip():
+    if not link:
         return jsonify({"error": "يرجى إدخال رابط"}), 400
 
     # لو الفيديو ده جاري تحميله أو اتحمل بالفعل → رجع نفس الـ download_id
@@ -153,6 +251,52 @@ def check_status(download_id):
 @app.route("/downloads/<path:filename>")
 def serve_downloads(filename):
     return send_from_directory(os.path.join(os.getcwd(), "downloads"), filename)
+
+# ====== المعلومات ======
+@app.route("/channel", methods=["GET"])
+def channel_videos():
+    channel_url = request.args.get("url")
+    links = request.args.get("links", "true").lower() == "true"
+    titles = request.args.get("titles", "true").lower() == "true"
+
+    if not channel_url:
+        return jsonify({"error": "Missing 'url' parameter"}), 400
+
+    try:
+        videos = get_channel_videos(channel_url, links=links, titles=titles)
+        return jsonify(videos)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/playlist", methods=["GET"])
+def playlist_videos():
+    playlist_url = request.args.get("url")
+    links = request.args.get("links", "true").lower() == "true"
+    titles = request.args.get("titles", "true").lower() == "true"
+
+    if not playlist_url:
+        return jsonify({"error": "Missing 'url' parameter"}), 400
+
+    try:
+        videos = get_playlist_videos(playlist_url, links=links, titles=titles)
+        return jsonify(videos)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/video", methods=["GET"])
+def video_info():
+    video_url = request.args.get("url")
+    title = request.args.get("title", "true").lower() == "true"
+    description = request.args.get("description", "true").lower() == "true"
+
+    if not video_url:
+        return jsonify({"error": "Missing 'url' parameter"}), 400
+
+    try:
+        info = get_video_info(video_url, title=title, description=description)
+        return jsonify(info)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ===== تشغيل Flask =====
 if __name__ == "__main__":
