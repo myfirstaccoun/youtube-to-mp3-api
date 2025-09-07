@@ -14,7 +14,6 @@ CORS(app)
 # ===== إعدادات التحميل =====
 FOLDER_PATH = './downloads/'
 os.makedirs(FOLDER_PATH, exist_ok=True)
-chunk_size = 20  # ميجا
 file_ext = "m4a"
 start_num = 0
 
@@ -156,7 +155,7 @@ def get_best_thumbnail(video_id: str) -> str:
 # ===== دوال مساعدة =====
 async def auto_delete(download_id, wait_seconds=3600*8):
     await asyncio.sleep(wait_seconds)
-    # لو لسه موجود بعد دقيقة
+
     if download_id in downloads_status:
         # حذف من video_to_id (لو موجود)
         for link, dl_id in list(video_to_id.items()):
@@ -172,7 +171,7 @@ async def auto_delete(download_id, wait_seconds=3600*8):
 
         # حذف من downloads_status
         del downloads_status[download_id]
-        print(f"🗑️ Download ID {download_id} تم حذفه تلقائيًا بعد دقيقة")
+        print(f"🗑️ Download ID {download_id} تم حذفه تلقائيًا")
 
 # ===== تنزيل وتقسيم =====
 def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
