@@ -1,5 +1,6 @@
 import os
 import yt_dlp
+import requests
 import uuid
 import asyncio
 import threading
@@ -22,7 +23,7 @@ downloads_status = {}
 video_to_id = {}  # جديد: يربط الفيديو بالـ download_id
 
 # ===== المعلومات =====
-def get_channel_videos(channel_url: str, links: bool = True, titles: bool = True) -> list[dict]:
+def get_channel_videos(channel_url: str, links: bool = True, titles: bool = True, thumb: bool = False) -> list[dict]:
     """
     ترجع قائمة فيديوهات قناة يوتيوب.
     
@@ -51,11 +52,13 @@ def get_channel_videos(channel_url: str, links: bool = True, titles: bool = True
                 video_data['link'] = f"https://www.youtube.com/watch?v={entry['id']}"
             if titles:
                 video_data['title'] = entry['title']
+            if thumb:
+                video_data['thumb'] = get_best_thumbnail(entry['id'])
             result.append(video_data)
     
     return result
 
-def get_playlist_videos(playlist_url: str, links: bool = True, titles: bool = True) -> list[dict]:
+def get_playlist_videos(playlist_url: str, links: bool = True, titles: bool = True, thumb: bool = False) -> list[dict]:
     """
     ترجع قائمة فيديوهات بلايليست يوتيوب.
     
@@ -84,11 +87,13 @@ def get_playlist_videos(playlist_url: str, links: bool = True, titles: bool = Tr
                 video_data['link'] = f"https://www.youtube.com/watch?v={entry['id']}"
             if titles:
                 video_data['title'] = entry['title']
+            if thumb:
+                video_data['thumb'] = get_best_thumbnail(entry['id'])
             result.append(video_data)
     
     return result
 
-def get_video_info(link: str, title: bool = True, description: bool = True) -> dict:
+def get_video_info(link: str, title: bool = True, description: bool = True, thumb: bool = False) -> dict:
     """
     ترجع معلومات فيديو يوتيوب.
     
@@ -116,8 +121,37 @@ def get_video_info(link: str, title: bool = True, description: bool = True) -> d
             result['title'] = info.get('title', '')
         if description:
             result['description'] = info.get('description', '')
-    
+        if thumb:
+            result['thumb'] = get_best_thumbnail(info.get('id', ''))
+        
     return result
+
+def get_best_thumbnail(video_id: str) -> str:
+    """
+    تجيب أفضل صورة مصغرة باستخدام requests وتجربة الروابط.
+    """
+    qualities = [
+        "maxresdefault.jpg",
+        "sddefault.jpg",
+        "hqdefault.jpg",
+        "mqdefault.jpg",
+        "default.jpg"
+    ]
+
+    base_url = f"https://img.youtube.com/vi/{video_id}/"
+
+    for quality in qualities:
+        url = base_url + quality
+        try:
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                # صورة placeholder بتكون صغيرة جداً (120px)
+                if "image" in response.headers.get("Content-Type", "") and len(response.content) > 2000:
+                    return url
+        except requests.RequestException:
+            continue
+
+    return None
 
 # ===== دوال مساعدة =====
 async def auto_delete(download_id, wait_seconds=3600*8):
@@ -258,12 +292,13 @@ def channel_videos():
     channel_url = request.args.get("url")
     links = request.args.get("links", "true").lower() == "true"
     titles = request.args.get("titles", "true").lower() == "true"
+    thumb = request.args.get("thumb", "true").lower() == "true"
 
     if not channel_url:
         return jsonify({"error": "Missing 'url' parameter"}), 400
 
     try:
-        videos = get_channel_videos(channel_url, links=links, titles=titles)
+        videos = get_channel_videos(channel_url, links=links, titles=titles, thumb=thumb)
         return jsonify(videos)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
