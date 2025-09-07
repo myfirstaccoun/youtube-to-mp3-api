@@ -307,12 +307,13 @@ def playlist_videos():
     playlist_url = request.args.get("url")
     links = request.args.get("links", "true").lower() == "true"
     titles = request.args.get("titles", "true").lower() == "true"
+    thumb = request.args.get("thumb", "true").lower() == "true"
 
     if not playlist_url:
         return jsonify({"error": "Missing 'url' parameter"}), 400
 
     try:
-        videos = get_playlist_videos(playlist_url, links=links, titles=titles)
+        videos = get_playlist_videos(playlist_url, links=links, titles=titles, thumb=thumb)
         return jsonify(videos)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -322,12 +323,13 @@ def video_info():
     video_url = request.args.get("url")
     title = request.args.get("title", "true").lower() == "true"
     description = request.args.get("description", "true").lower() == "true"
+    thumb = request.args.get("thumb", "true").lower() == "true"
 
     if not video_url:
         return jsonify({"error": "Missing 'url' parameter"}), 400
 
     try:
-        info = get_video_info(video_url, title=title, description=description)
+        info = get_video_info(video_url, title=title, description=description, thumb=thumb)
         return jsonify(info)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
