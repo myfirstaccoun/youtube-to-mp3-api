@@ -153,11 +153,9 @@ def get_best_thumbnail(video_id: str) -> str:
     return None
 
 # ===== دوال مساعدة =====
-def auto_delete(download_id, wait_seconds=10):
-# async def auto_delete(download_id, wait_seconds=3600*8):
+def auto_delete(download_id, wait_seconds=3600*8):
     def _delete():
         if download_id in downloads_status:
-            downloads_status[download_id]["llllllllll"] = "plplplplplpl"
             print(f"🗑️ Download ID {download_id} اتغيرت القيمه")
 
             for link, dl_id in list(video_to_id.items()):
@@ -171,25 +169,6 @@ def auto_delete(download_id, wait_seconds=10):
             
     timer = threading.Timer(wait_seconds, _delete)
     timer.start()
-
-
-
-    # if download_id in downloads_status:
-    #     # حذف من video_to_id (لو موجود)
-    #     for link, dl_id in list(video_to_id.items()):
-    #         if dl_id == download_id:
-    #             del video_to_id[link]
-
-    #     # حذف الملفات من القرص لو موجودة
-    #     file_list = downloads_status[download_id].get("whole_file", [])
-    #     for f in file_list:
-    #         if os.path.exists(f):
-    #             os.remove(f)
-    #             print(f"🗑️ تم مسح الملف تلقائيًا: {f}")
-
-    #     # حذف من downloads_status
-    #     del downloads_status[download_id]
-    #     print(f"🗑️ Download ID {download_id} تم حذفه تلقائيًا")
 
 # ===== تنزيل وتقسيم =====
 def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
