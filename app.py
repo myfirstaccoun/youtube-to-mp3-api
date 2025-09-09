@@ -257,8 +257,9 @@ def start_download():
     downloads_status[download_id] = {"status": "after wait", "progress": 0, "files": []}
 
     threading.Thread(
-        target=lambda: asyncio.run(download_and_delete_after_delay(download_id, link))
+        target=lambda: download_and_delete_after_delay(download_id, link)
     ).start()
+
 
     return jsonify({"download_id": download_id, "status": "queued"})
 
