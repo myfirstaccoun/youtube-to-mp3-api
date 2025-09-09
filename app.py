@@ -244,7 +244,7 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
 
     return downloaded_file
 
-def download_and_delete_after_delay_threaded(download_id, video_url):
+def download_and_delete_after_delay(download_id, video_url):
     # شغل التحميل في thread
     def run_download():
         download(download_id, video_url)
