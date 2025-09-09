@@ -157,6 +157,7 @@ async def auto_delete(download_id, wait_seconds=10):
 # async def auto_delete(download_id, wait_seconds=3600*8):
     downloads_status[download_id]["llllllllll"] = "ppppppppppp"
     await asyncio.sleep(wait_seconds)
+    downloads_status[download_id]["llllllllll"] = "plplplplplpl"
 
     for link, dl_id in list(video_to_id.items()):
         if dl_id == download_id:
