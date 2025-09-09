@@ -163,8 +163,8 @@ async def auto_delete(download_id, wait_seconds=3600*8):
                 del video_to_id[link]
 
         # حذف الملفات من القرص لو موجودة
-        files = downloads_status[download_id].get("files", [])
-        for f in files:
+        file_list = downloads_status[download_id].get("whole_file", [])
+        for f in file_list:
             if os.path.exists(f):
                 os.remove(f)
                 print(f"🗑️ تم مسح الملف تلقائيًا: {f}")
@@ -284,6 +284,44 @@ def check_status(download_id):
 @app.route("/downloads/<path:filename>")
 def serve_downloads(filename):
     return send_from_directory(os.path.join(os.getcwd(), "downloads"), filename)
+
+@app.route("/files")
+def list_downloads():
+    folder = os.path.abspath(FOLDER_PATH)
+    if not os.path.exists(folder):
+        return jsonify({"error": "المجلد غير موجود"})
+    
+    files = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
+    return jsonify({"files": files})
+
+@app.route("/delete-all", methods=["POST"])
+def delete_all_files():
+    folder = os.path.abspath(FOLDER_PATH)
+
+    if not os.path.exists(folder):
+        return jsonify({"message": "📂 المجلد غير موجود أصلاً"}), 200
+
+    deleted_files = []
+    errors = []
+
+    for f in os.listdir(folder):
+        file_path = os.path.join(folder, f)
+        if os.path.isfile(file_path):
+            try:
+                os.remove(file_path)
+                deleted_files.append(f)
+            except Exception as e:
+                errors.append({"file": f, "error": str(e)})
+
+    # تنظيف الحالات كمان
+    downloads_status.clear()
+    video_to_id.clear()
+
+    return jsonify({
+        "message": "🗑️ تم مسح كل الملفات",
+        "deleted_files": deleted_files,
+        "errors": errors
+    })
 
 # ====== المعلومات ======
 @app.route("/channel", methods=["GET"])
