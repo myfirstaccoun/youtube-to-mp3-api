@@ -244,13 +244,15 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
 
     return downloaded_file
 
-async def download_and_delete_after_delay(download_id, video_url):
-    downloads_status[download_id]["status"] = "in else"
-    await asyncio.to_thread(download, download_id, video_url)
+def download_and_delete_after_delay_threaded(download_id, video_url):
+    # شغل التحميل في thread
+    def run_download():
+        download(download_id, video_url)
+        # بعد ما التحميل يخلص، شغل auto_delete
+        auto_delete(download_id)  # هنا timer هيتعامل مع الانتظار
 
-    # تشغيل المهمة بدون انتظار في نفس الـ loop
     downloads_status[download_id]["llllllllll"] = "aaaaaaaaaaaaaaa"
-    asyncio.create_task(auto_delete(download_id))
+    threading.Thread(target=run_download).start()
 
 # ===== Flask API =====
 @app.route("/")
