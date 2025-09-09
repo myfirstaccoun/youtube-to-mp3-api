@@ -155,6 +155,7 @@ def get_best_thumbnail(video_id: str) -> str:
 # ===== دوال مساعدة =====
 async def auto_delete(download_id, wait_seconds=10):
 # async def auto_delete(download_id, wait_seconds=3600*8):
+    downloads_status[download_id]["llllllllll"] = "ppppppppppp"
     await asyncio.sleep(wait_seconds)
 
     for link, dl_id in list(video_to_id.items()):
@@ -239,6 +240,7 @@ async def download_and_delete_after_delay(download_id, video_url):
     await asyncio.to_thread(download, download_id, video_url)
 
     # تشغيل المهمة بدون انتظار في نفس الـ loop
+    downloads_status[download_id]["llllllllll"] = "aaaaaaaaaaaaaaa"
     asyncio.create_task(auto_delete(download_id))
 
 # ===== Flask API =====
