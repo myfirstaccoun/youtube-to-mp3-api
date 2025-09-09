@@ -153,7 +153,7 @@ def get_best_thumbnail(video_id: str) -> str:
     return None
 
 # ===== دوال مساعدة =====
-async def auto_delete(download_id, wait_seconds=3600*8):
+async def auto_delete(download_id, wait_seconds=10):
     await asyncio.sleep(wait_seconds)
 
     if download_id in downloads_status:
