@@ -295,7 +295,7 @@ def list_downloads():
     files = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
     return jsonify({"files": files})
 
-@app.route("/delete-all", methods=["POST"])
+@app.route("/delete-all")
 def delete_all_files():
     folder = os.path.abspath(FOLDER_PATH)
 
