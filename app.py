@@ -211,7 +211,7 @@ def make_podcasts_links(loop_time = 3600*12):
         
         if "reverse" in item and item["reverse"] == True: res[link] = res[link][::-1]
     
-    saveJSON(res, "./data/podcasts.json")
+    saveJSON(res, "/data/podcasts.json")
     time.sleep(loop_time)
     make_podcasts_links()
 
@@ -230,7 +230,7 @@ def make_salasel_links(loop_time = 3600*24*30):
             
             if "reverse" in item and item["reverse"] == True: res[link] = res[link][::-1]
     
-    saveJSON(res, "./data/salasel.json")
+    saveJSON(res, "/data/salasel.json")
     time.sleep(loop_time)
     make_salasel_links()
 
@@ -249,7 +249,7 @@ def make_courses_links(loop_time = 3600*24*3):
             
             if "reverse" in item and item["reverse"] == True: res[link] = res[link][::-1]
     
-    saveJSON(res, "./data/courses.json")
+    saveJSON(res, "/data/courses.json")
     time.sleep(loop_time)
     make_courses_links()
 
@@ -398,9 +398,7 @@ def serve_downloads(filename):
 
 @app.route("/data/<path:filename>")
 def serve_data(filename):
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(base_dir, "data")
-    return send_from_directory(data_dir, filename)
+    return send_from_directory(os.path.join(os.getcwd(), "data"), filename)
 
 @app.route("/files")
 def list_downloads():
