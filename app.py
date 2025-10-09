@@ -2,7 +2,7 @@ import os
 import yt_dlp
 import requests
 import uuid
-import asyncio
+import time
 import threading
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -20,6 +20,33 @@ start_num = 0
 # ===== حالات التحميل =====
 downloads_status = {}
 video_to_id = {}  # جديد: يربط الفيديو بالـ download_id
+
+# ===== دوال =====
+def get_json_file(link: str):
+    import requests
+    
+    """تحميل ملف JSON من رابط وإرجاع محتواه كقاموس (dict)."""
+    try:
+        response = requests.get(link)
+        response.raise_for_status()  # لو الرابط فيه خطأ (404 أو 500) يرمي استثناء
+        return response.json()       # يحوّل محتوى JSON إلى dict مباشرة
+    except requests.exceptions.RequestException as e:
+        print(f"خطأ في تحميل الملف: {e}")
+        return None
+    except ValueError:
+        print("الملف مش بصيغة JSON صحيحة.")
+        return None
+
+def saveJSON(data: dict, file_path: str, indent: int = 4, encoding: str = "utf-8", save_mode = "w"):
+    """
+    اللهم صل على محمد ﷺ
+    ---------------------------
+    """
+
+    import json
+
+    with open(file_path, save_mode, encoding=encoding) as output_file:
+        json.dump(data, output_file, indent=indent, ensure_ascii=False)
 
 # ===== المعلومات =====
 def get_channel_videos(channel_url: str, links: bool = True, titles: bool = True, thumb: bool = False) -> list[dict]:
@@ -152,6 +179,69 @@ def get_best_thumbnail(video_id: str) -> str:
 
     return None
 
+# ===== عمل الملفات =====
+def make_podcasts_links(loop_time = 3600*12):
+    res = {}
+    file = get_json_file("sawtii.github.io/بيانات/إذاعة.json")
+    for i, item in enumerate(file):
+        item_type = item["type"]
+        link = item["link"]
+
+        if item_type == "channel":
+            res[link] = get_channel_videos(link, links=True, titles=True, thumb=False)
+        elif item_type == "playlist":
+            res[link] = get_playlist_videos(link, links=True, titles=True, thumb=False)
+        
+        if "reverse" in item and item["reverse"] == True: res[link] = res[link][::-1]
+    
+    saveJSON(res, "./data/podcasts.json")
+    time.sleep(loop_time)
+    make_podcasts_links()
+
+def make_salasel_links(loop_time = 3600*24*30):
+    res = {}
+    file = get_json_file("sawtii.github.io/بيانات/سلاسل.json")
+    for i, person in enumerate(file):
+        for item in person["courses"]:
+            item_type = item["type"]
+            link = item["link"]
+
+            if item_type == "channel":
+                res[link] = get_channel_videos(link, links=True, titles=True, thumb=False)
+            elif item_type == "playlist":
+                res[link] = get_playlist_videos(link, links=True, titles=True, thumb=False)
+            
+            if "reverse" in item and item["reverse"] == True: res[link] = res[link][::-1]
+    
+    saveJSON(res, "./data/salasel.json")
+    time.sleep(loop_time)
+    make_salasel_links()
+
+def make_courses_links(loop_time = 3600*24*3):
+    res = {}
+    file = get_json_file("sawtii.github.io/بيانات/محاضرون.json")
+    for i, person in enumerate(file):
+        for item in person["courses"]:
+            item_type = item["type"]
+            link = item["link"]
+
+            if item_type == "channel":
+                res[link] = get_channel_videos(link, links=True, titles=True, thumb=False)
+            elif item_type == "playlist":
+                res[link] = get_playlist_videos(link, links=True, titles=True, thumb=False)
+            
+            if "reverse" in item and item["reverse"] == True: res[link] = res[link][::-1]
+    
+    saveJSON(res, "./data/courses.json")
+    time.sleep(loop_time)
+    make_courses_links()
+
+make_podcasts_links()
+make_salasel_links()
+make_courses_links()
+
+# make it (notifications by knowing time of save item link on server إشعارات نزول الحلقات بتسجيل وقت حفظها على الخادم)
+
 # ===== دوال مساعدة =====
 def auto_delete(download_id, wait_seconds=3600*8):
     def _delete():
@@ -204,15 +294,18 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
     downloads_status[download_id]["status"] = "before downloading 1"
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        downloads_status[download_id]["status"] = "in downloading 1"
-        info = ydl.extract_info(video_url, download=True)
-        downloads_status[download_id]["status"] = "in downloading 2"
-        downloaded_file = ydl.prepare_filename(info)
-        downloads_status[download_id]["status"] = "in downloading 3"
-        if not downloaded_file.endswith(f".{file_extension}"):
-            downloads_status[download_id]["status"] = "in downloading 4"
-            downloaded_file = os.path.splitext(downloaded_file)[0] + f".{file_extension}"
-            downloads_status[download_id]["status"] = "in downloading 5"
+        downloads_status[download_id]["status"] = f"in downloading 1, video_url: {video_url}"
+        try:
+            info = ydl.extract_info(video_url, download=True)
+            downloads_status[download_id]["status"] = "in downloading 2"
+            downloaded_file = ydl.prepare_filename(info)
+            downloads_status[download_id]["status"] = "in downloading 3"
+            if not downloaded_file.endswith(f".{file_extension}"):
+                downloads_status[download_id]["status"] = "in downloading 4"
+                downloaded_file = os.path.splitext(downloaded_file)[0] + f".{file_extension}"
+                downloads_status[download_id]["status"] = "in downloading 5"
+        except Exception as e:
+            downloads_status[download_id]["status"] = f"in downloading error, , video_url: {video_url}, error: {str(e)}"
 
     downloads_status[download_id]["whole_file"] = [downloaded_file.replace("./", "")]
 
@@ -285,6 +378,10 @@ def check_status(download_id):
 @app.route("/downloads/<path:filename>")
 def serve_downloads(filename):
     return send_from_directory(os.path.join(os.getcwd(), "downloads"), filename)
+
+@app.route("/data/<path:filename>")
+def serve_data(filename):
+    return send_from_directory(os.path.join(os.getcwd(), "data"), filename)
 
 @app.route("/files")
 def list_downloads():
