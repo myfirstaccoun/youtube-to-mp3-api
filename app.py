@@ -398,7 +398,9 @@ def serve_downloads(filename):
 
 @app.route("/data/<path:filename>")
 def serve_data(filename):
-    return send_from_directory(os.path.join(os.getcwd(), "data"), filename)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(base_dir, "data")
+    return send_from_directory(data_dir, filename)
 
 @app.route("/files")
 def list_downloads():
