@@ -37,16 +37,33 @@ def get_json_file(link: str):
         print("الملف مش بصيغة JSON صحيحة.")
         return None
 
-def saveJSON(data: dict, file_path: str, indent: int = 4, encoding: str = "utf-8", save_mode = "w"):
+def saveJSON(data: dict, file_path: str, indent: int = 4, encoding: str = "utf-8", save_mode="w"):
     """
-    اللهم صل على محمد ﷺ
-    ---------------------------
+    اللهم صل وسلم على نبينا محمد ﷺ
+    ---------------------------------
+    تحفظ بيانات JSON في ملف بأمان، مع إنشاء المجلد تلقائيًا
+    والتعامل مع المسارات المطلقة داخل السيرفر أو Docker.
     """
 
+    import os
     import json
 
-    with open(file_path, save_mode, encoding=encoding) as output_file:
-        json.dump(data, output_file, indent=indent, ensure_ascii=False)
+    try:
+        # 🔹 تحديد المسار الكامل بناءً على مكان هذا الملف (app.py)
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        full_path = os.path.join(base_dir, file_path)
+
+        # 🔹 إنشاء المجلد تلقائيًا إذا لم يكن موجودًا
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+
+        # 🔹 حفظ البيانات في الملف
+        with open(full_path, save_mode, encoding=encoding) as output_file:
+            json.dump(data, output_file, indent=indent, ensure_ascii=False)
+
+        print(f"✅ تم حفظ الملف بنجاح: {full_path}")
+
+    except Exception as e:
+        print(f"❌ خطأ أثناء حفظ JSON ({file_path}): {e}")
 
 # ===== المعلومات =====
 def get_channel_videos(channel_url: str, links: bool = True, titles: bool = True, thumb: bool = False) -> list[dict]:
