@@ -211,7 +211,7 @@ def make_podcasts_links(loop_time = 3600*12):
         
         if "reverse" in item and item["reverse"] == True: res[link] = res[link][::-1]
     
-    saveJSON(res, "/data/podcasts.json")
+    saveJSON(res, "./data/podcasts.json")
     time.sleep(loop_time)
     make_podcasts_links()
 
@@ -230,7 +230,7 @@ def make_salasel_links(loop_time = 3600*24*30):
             
             if "reverse" in item and item["reverse"] == True: res[link] = res[link][::-1]
     
-    saveJSON(res, "/data/salasel.json")
+    saveJSON(res, "./data/salasel.json")
     time.sleep(loop_time)
     make_salasel_links()
 
@@ -249,13 +249,9 @@ def make_courses_links(loop_time = 3600*24*3):
             
             if "reverse" in item and item["reverse"] == True: res[link] = res[link][::-1]
     
-    saveJSON(res, "/data/courses.json")
+    saveJSON(res, "./data/courses.json")
     time.sleep(loop_time)
     make_courses_links()
-
-make_podcasts_links()
-make_salasel_links()
-make_courses_links()
 
 # make it (notifications by knowing time of save item link on server إشعارات نزول الحلقات بتسجيل وقت حفظها على الخادم)
 
@@ -489,4 +485,10 @@ def video_info():
 
 # ===== تشغيل Flask =====
 if __name__ == "__main__":
+    # شغل المهام الدورية في الخلفية
+    threading.Thread(target=make_podcasts_links, daemon=True).start()
+    threading.Thread(target=make_salasel_links, daemon=True).start()
+    threading.Thread(target=make_courses_links, daemon=True).start()
+
+    # شغل السيرفر
     app.run(port=8000, debug=False, use_reloader=False)
