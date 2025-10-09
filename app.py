@@ -182,7 +182,7 @@ def get_best_thumbnail(video_id: str) -> str:
 # ===== عمل الملفات =====
 def make_podcasts_links(loop_time = 3600*12):
     res = {}
-    file = get_json_file("sawtii.github.io/بيانات/إذاعة.json")
+    file = get_json_file("https://sawtii.github.io/بيانات/إذاعة.json")
     for i, item in enumerate(file):
         item_type = item["type"]
         link = item["link"]
@@ -200,7 +200,7 @@ def make_podcasts_links(loop_time = 3600*12):
 
 def make_salasel_links(loop_time = 3600*24*30):
     res = {}
-    file = get_json_file("sawtii.github.io/بيانات/سلاسل.json")
+    file = get_json_file("https://sawtii.github.io/بيانات/سلاسل.json")
     for i, person in enumerate(file):
         for item in person["courses"]:
             item_type = item["type"]
@@ -219,7 +219,7 @@ def make_salasel_links(loop_time = 3600*24*30):
 
 def make_courses_links(loop_time = 3600*24*3):
     res = {}
-    file = get_json_file("sawtii.github.io/بيانات/محاضرون.json")
+    file = get_json_file("https://sawtii.github.io/بيانات/محاضرون.json")
     for i, person in enumerate(file):
         for item in person["courses"]:
             item_type = item["type"]
