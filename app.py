@@ -208,6 +208,8 @@ def get_best_thumbnail(video_id: str) -> str:
 # ===== عمل الملفات =====
 in_first_run = True
 def make_podcasts_links(loop_time = 3600*12):
+    global in_first_run
+    
     res = {}
     file = get_json_file("https://sawtii.github.io/بيانات/إذاعة.json")
     for i, item in enumerate(file):
