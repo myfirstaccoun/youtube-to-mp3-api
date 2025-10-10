@@ -502,10 +502,14 @@ def video_info():
 
 # ===== تشغيل Flask =====
 print("before main")
-# if __name__ == "__main__":
-print("in main")
-# شغل المهام الدورية في الخلفية
-threading.Thread(target=make_podcasts_links, daemon=True).start()
 
-# شغل السيرفر
-app.run(port=8000, debug=False, use_reloader=False)
+def start_background_jobs():
+    print("🧵 Starting background thread...")
+    threading.Thread(target=make_podcasts_links, daemon=True).start()
+
+# ✅ شغل الثريد دايمًا سواء محلي أو على السيرفر
+start_background_jobs()
+
+if __name__ == "__main__":
+    print("in main")
+    app.run(port=8000, debug=False, use_reloader=False)
