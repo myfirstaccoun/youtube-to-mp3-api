@@ -392,6 +392,10 @@ def check_status(download_id):
 def serve_downloads(filename):
     return send_from_directory(os.path.join(os.getcwd(), "downloads"), filename)
 
+@app.route("/all-data")
+def serve_data():
+    return os.listdir(".")
+
 @app.route("/data/<path:filename>")
 def serve_data(filename):
     return send_from_directory(os.path.join(os.getcwd(), "data"), filename)
