@@ -393,7 +393,7 @@ def serve_downloads(filename):
     return send_from_directory(os.path.join(os.getcwd(), "downloads"), filename)
 
 @app.route("/all-data")
-def serve_data():
+def get_all_data():
     return os.listdir(".")
 
 @app.route("/data/<path:filename>")
