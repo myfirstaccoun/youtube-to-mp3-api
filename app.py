@@ -501,7 +501,9 @@ def video_info():
         return jsonify({"error": str(e)}), 500
 
 # ===== تشغيل Flask =====
+print("before main")
 if __name__ == "__main__":
+    print("in main")
     # شغل المهام الدورية في الخلفية
     threading.Thread(target=make_podcasts_links, daemon=True).start()
 
