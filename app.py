@@ -1,4 +1,3 @@
-from multiprocessing.util import is_exiting
 import os
 import yt_dlp
 import requests
@@ -207,6 +206,7 @@ def get_best_thumbnail(video_id: str) -> str:
     return None
 
 # ===== عمل الملفات =====
+in_first_run = True
 def make_podcasts_links(loop_time = 3600*12):
     res = {}
     file = get_json_file("https://sawtii.github.io/بيانات/إذاعة.json")
@@ -223,7 +223,8 @@ def make_podcasts_links(loop_time = 3600*12):
     
     create_folder("./data")
     saveJSON(res, "./data/podcasts.json")
-    make_salasel_links()
+    if in_first_run == True: make_salasel_links()
+    else: in_first_run = False
     time.sleep(loop_time)
     make_podcasts_links()
 
@@ -319,6 +320,7 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
 
     downloads_status[download_id]["status"] = "before downloading 1"
     
+    downloaded_file = None
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         downloads_status[download_id]["status"] = f"in downloading 1, video_url: {video_url}"
         try:
