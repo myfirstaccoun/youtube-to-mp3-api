@@ -206,10 +206,11 @@ def get_best_thumbnail(video_id: str) -> str:
     return None
 
 # ===== عمل الملفات =====
-in_first_run = True
+podcasts_in_first_run = True
+salasel_in_first_run = True
 def make_podcasts_links(loop_time = 3600*12):
-    global in_first_run
-    
+    global podcasts_in_first_run
+
     res = {}
     file = get_json_file("https://sawtii.github.io/بيانات/إذاعة.json")
     for i, item in enumerate(file):
@@ -225,12 +226,17 @@ def make_podcasts_links(loop_time = 3600*12):
     
     create_folder("./data")
     saveJSON(res, "./data/podcasts.json")
-    if in_first_run == True: make_salasel_links()
-    else: in_first_run = False
+    
+    if podcasts_in_first_run == True:
+        make_salasel_links()
+        podcasts_in_first_run = False
+    
     time.sleep(loop_time)
     make_podcasts_links()
 
 def make_salasel_links(loop_time = 3600*24*30):
+    global salasel_in_first_run
+
     res = {}
     file = get_json_file("https://sawtii.github.io/بيانات/سلاسل.json")
     for i, person in enumerate(file):
@@ -246,7 +252,11 @@ def make_salasel_links(loop_time = 3600*24*30):
             if "reverse" in item and item["reverse"] == True: res[link] = res[link][::-1]
     
     saveJSON(res, "./data/salasel.json")
-    make_courses_links()
+    
+    if salasel_in_first_run == True:
+        make_courses_links()
+        salasel_in_first_run = False
+    
     time.sleep(loop_time)
     make_salasel_links()
 
