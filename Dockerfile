@@ -38,4 +38,5 @@ ENV FLASK_APP=app.py
 EXPOSE 8000
 
 # تشغيل Gunicorn مع 1 worker و4 threads (للتعامل مع SQLite أو عمليات متزامنة)
+ENV PYTHONUNBUFFERED=1
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "4", "app:app"]
