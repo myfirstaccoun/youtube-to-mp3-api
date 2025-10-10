@@ -1,3 +1,4 @@
+from multiprocessing.util import is_exiting
 import os
 import yt_dlp
 import requests
@@ -64,6 +65,15 @@ def saveJSON(data: dict, file_path: str, indent: int = 4, encoding: str = "utf-8
 
     except Exception as e:
         print(f"❌ خطأ أثناء حفظ JSON ({file_path}): {e}")
+
+def create_folder(folder_path: str):
+    """
+    اللهم صل على محمد ﷺ
+    ---------------------------
+    """
+
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
 
 # ===== المعلومات =====
 def get_channel_videos(channel_url: str, links: bool = True, titles: bool = True, thumb: bool = False) -> list[dict]:
@@ -211,7 +221,9 @@ def make_podcasts_links(loop_time = 3600*12):
         
         if "reverse" in item and item["reverse"] == True: res[link] = res[link][::-1]
     
+    create_folder("./data")
     saveJSON(res, "./data/podcasts.json")
+    make_salasel_links()
     time.sleep(loop_time)
     make_podcasts_links()
 
@@ -231,6 +243,7 @@ def make_salasel_links(loop_time = 3600*24*30):
             if "reverse" in item and item["reverse"] == True: res[link] = res[link][::-1]
     
     saveJSON(res, "./data/salasel.json")
+    make_courses_links()
     time.sleep(loop_time)
     make_salasel_links()
 
@@ -491,8 +504,6 @@ def video_info():
 if __name__ == "__main__":
     # شغل المهام الدورية في الخلفية
     threading.Thread(target=make_podcasts_links, daemon=True).start()
-    threading.Thread(target=make_salasel_links, daemon=True).start()
-    threading.Thread(target=make_courses_links, daemon=True).start()
 
     # شغل السيرفر
     app.run(port=8000, debug=False, use_reloader=False)
