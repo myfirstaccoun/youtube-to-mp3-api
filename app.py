@@ -63,7 +63,10 @@ def saveJSON(data: dict, file_path: str, indent: int = 4, encoding: str = "utf-8
         print(f"✅ تم حفظ الملف بنجاح: {full_path}")
 
     except Exception as e:
-        print(f"❌ خطأ أثناء حفظ JSON ({file_path}): {e}")
+        downloads_status[download_id]["status"] = "error"
+        downloads_status[download_id]["error"] = f"Download failed: {str(e)}"
+        return None
+
 
 def create_folder(folder_path: str):
     """
@@ -347,8 +350,13 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
         except Exception as e:
             downloads_status[download_id]["status"] = f"in downloading error, , video_url: {video_url}, error: {str(e)}"
 
-    downloads_status[download_id]["whole_file"] = [downloaded_file.replace("./", "")]
-
+    if downloaded_file is None:
+        return None
+    
+    downloads_status[download_id]["whole_file"] = [
+        downloaded_file.replace("./", "")
+    ]
+    
     downloads_status[download_id].update({
         "status": "done",
         "progress": 100,
