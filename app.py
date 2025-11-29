@@ -326,17 +326,43 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
         'format': 'bestaudio[ext=m4a]/bestaudio/best',
         'outtmpl': os.path.join(folder_path, '%(id)s.%(ext)s'),
         'progress_hooks': [progress_hook],
+        
+        # 🔥 Headers محسّنة
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            'Accept-Language': 'en-US,en;q=0.9',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-us,en;q=0.5',
+            'Sec-Fetch-Mode': 'navigate',
         },
+        
+        # 🔥 إعدادات إضافية مهمة
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web'],  # جرب clients مختلفة
+                'player_skip': ['webpage', 'configs'],
+            }
+        },
+        
+        # 🔥 استخدام IPv4 فقط (بعض السيرفرات IPv6 بتعمل مشاكل)
+        'source_address': '0.0.0.0',
+        
+        # 🔥 retry في حالة الفشل
+        'retries': 10,
+        'fragment_retries': 10,
+        
+        # 🔥 تجاهل الأخطاء المؤقتة
+        'ignoreerrors': False,
+        
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': file_extension,
             'preferredquality': '192',
         }],
+        
+        # 🔥 استخدام cookies من متصفحك (اختياري لكن مفيد جداً)
+        # 'cookiefile': 'cookies.txt',  # لو عندك ملف cookies
     }
-
+    
     downloads_status[download_id]["status"] = "before downloading 1"
     
     downloaded_file = None
