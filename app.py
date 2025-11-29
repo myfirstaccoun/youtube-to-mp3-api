@@ -326,6 +326,10 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
         'format': 'bestaudio[ext=m4a]/bestaudio/best',
         'outtmpl': os.path.join(folder_path, '%(id)s.%(ext)s'),
         'progress_hooks': [progress_hook],
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'Accept-Language': 'en-US,en;q=0.9',
+        },
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': file_extension,
