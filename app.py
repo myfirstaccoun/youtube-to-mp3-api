@@ -360,7 +360,7 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
         }],
         
         # 🔥 استخدام cookies من متصفحك (اختياري لكن مفيد جداً)
-        'cookiefile': '/opt/youtube-to-mp3-api/cookies.txt',
+        'cookiefile': '/app/cookies.txt',
     }
     
     downloads_status[download_id]["status"] = "before downloading 1"
