@@ -326,15 +326,15 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
             downloads_status[download_id]["progress"] = 100
 
     ydl_opts = {
-        'format': 'bestaudio/best',  # Choose the best audio format available
+        'format': 'bestaudio/best',
         'postprocessors': [{
-            'key': 'FFmpegAudioConvertor',  # Corrected key for audio conversion
-            'preferredcodec': 'm4a',  # Convert to m4a format
-            'preferredquality': '192',  # Audio quality
+            'key': 'FFmpegExtractAudio',   # Correct key
+            'preferredcodec': 'm4a',
+            'preferredquality': '192',
         }],
-        'outtmpl': output_template,  # Save with the video title as the filename
+        'outtmpl': '%(title)s.%(ext)s',
     }
-
+                 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([video_url])
         
