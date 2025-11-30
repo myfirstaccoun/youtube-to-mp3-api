@@ -326,12 +326,7 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
             downloads_status[download_id]["status"] = "finished"
             downloads_status[download_id]["progress"] = 100
 
-    subprocess.run("yt-dlp -x --audio-format m4a https://www.youtube.com/watch?v=COogWP0kKCc", shell=True)
-        
-        # info = ydl.extract_info(video_url, download=True)
-        # downloaded_file = ydl.prepare_filename(info)
-        # if not downloaded_file.endswith(f".{file_extension}"):
-        #     downloaded_file = os.path.splitext(downloaded_file)[0] + f".{file_extension}"
+    subprocess.run(f'yt-dlp -x --audio-format m4a -o "./downloads/%(id)s.%(ext)s" {video_url}', shell=True)
     
     downloads_status[download_id].update({
         "status": "done",
@@ -339,7 +334,7 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
         "whole_file": ['downloaded_file.replace("./", "")']
     })
 
-    return "downloaded_file"
+    return 'downloaded_file'
 
 def download_and_delete_after_delay(download_id, video_url):
     # شغل التحميل في thread
