@@ -326,18 +326,22 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
             downloads_status[download_id]["status"] = "finished"
             downloads_status[download_id]["progress"] = 100
 
-    yt = YouTube(video_url)
+    ydl_opts = {
+        'format': 'bestaudio[ext=m4a]/bestaudio/best',
+        'outtmpl': os.path.join(DOWNLOADS_DIR, '%(title)s.%(ext)s'),
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'm4a',
+            'preferredquality': '192',
+        }],
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        'cookies': 'app/cookies.txt',  # لو محتاج تسجيل دخول
+    }
     
-    # اختيار أفضل stream للصوت فقط
-    audio_stream = yt.streams.filter(only_audio=True).first()
-    
-    # تنزيل الصوت باسم مؤقت mp4
-    temp_file = 'audio_temp.mp4'
-    audio_stream.download(filename=temp_file)
-    
-    # تحويل mp4 إلى m4a باستخدام ffmpeg
-    output_file = 'audio.m4a'
-    subprocess.run(['ffmpeg', '-i', temp_file, '-c:a', 'aac', '-b:a', '192k', output_file])
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([video_url])
         
         # info = ydl.extract_info(video_url, download=True)
         # downloaded_file = ydl.prepare_filename(info)
