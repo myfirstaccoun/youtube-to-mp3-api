@@ -326,7 +326,7 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
             downloads_status[download_id]["progress"] = 100
 
     ydl_opts = {
-        'format': 'bestaudio/best',
+        'format': 'bestaudio[ext=m4a]/bestaudio/best',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',   # Correct key
             'preferredcodec': 'm4a',
