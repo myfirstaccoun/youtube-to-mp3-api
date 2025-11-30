@@ -347,20 +347,18 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
     downloads_status[download_id]["status"] = "before downloading 1"
     
     downloaded_file = None
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        downloads_status[download_id]["status"] = f"in downloading 1, video_url: {video_url}"
-        try:
-            info = ydl.extract_info(video_url, download=True)
-            downloads_status[download_id]["status"] = "in downloading 2"
-            downloaded_file = ydl.prepare_filename(info)
-            downloads_status[download_id]["status"] = "in downloading 3"
-            if not downloaded_file.endswith(f".{file_extension}"):
-                downloads_status[download_id]["status"] = "in downloading 4"
-                downloaded_file = os.path.splitext(downloaded_file)[0] + f".{file_extension}"
-                downloads_status[download_id]["status"] = "in downloading 5"
-        except Exception as e:
-            downloads_status[download_id]["status"] = f"in downloading error, , video_url: {video_url}, error: {str(e)}"
-
+    try:
+        subprocess.run(command, check=True)
+        downloaded_file = os.path.join(downloads_folder, video_url.split("=")[-1] + f".{file_extension}")
+        downloads_status[download_id]["status"] = "done"
+        downloads_status[download_id]["progress"] = 100
+        downloads_status[download_id]["whole_file"] = [downloaded_file.replace("./", "")]
+        return downloaded_file
+    except subprocess.CalledProcessError as e:
+        downloads_status[download_id]["status"] = "error"
+        downloads_status[download_id]["error"] = str(e)
+        return None
+        
     if downloaded_file is None:
         return None
     
