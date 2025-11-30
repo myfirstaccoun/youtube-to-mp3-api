@@ -326,37 +326,30 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
             downloads_status[download_id]["progress"] = 100
 
     ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': output_template,
-        'cookies': cookies,
-        'noplaylist': True,
-        'quiet': False,
-        'forceipv4': True,
-        'sleep_interval': 1,
-        'retries': 10,
-        'nocheckcertificate': True,
-        'extractor_args': {'youtube': {'player_client': 'default'}},
-        'progress_hooks': [progress_hook],
+        'format': 'bestaudio/best',  # Choose the best audio format available
         'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': file_extension,
-            'preferredquality': '192',
-        }]
+            'key': 'FFmpegAudioConvertor',
+            'preferredcodec': 'm4a',  # Convert to m4a format
+            'preferredquality': '192',  # Audio quality
+        }],
+        'outtmpl': output_template,  # Save with the video title as the filename
     }
-    
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(video_url, download=True)
-        downloaded_file = ydl.prepare_filename(info)
-        if not downloaded_file.endswith(f".{file_extension}"):
-            downloaded_file = os.path.splitext(downloaded_file)[0] + f".{file_extension}"
+        ydl.download([video_url])
+        
+        # info = ydl.extract_info(video_url, download=True)
+        # downloaded_file = ydl.prepare_filename(info)
+        # if not downloaded_file.endswith(f".{file_extension}"):
+        #     downloaded_file = os.path.splitext(downloaded_file)[0] + f".{file_extension}"
     
     downloads_status[download_id].update({
         "status": "done",
         "progress": 100,
-        "whole_file": [downloaded_file.replace("./", "")]
+        "whole_file": ['downloaded_file.replace("./", "")']
     })
 
-    return downloaded_file
+    return "downloaded_file"
 
 def download_and_delete_after_delay(download_id, video_url):
     # شغل التحميل في thread
