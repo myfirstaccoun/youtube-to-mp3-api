@@ -6,8 +6,6 @@ import time
 import threading
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-import subprocess
-from pytube import YouTube
 
 # ===== إعدادات Flask =====
 app = Flask(__name__)
@@ -306,36 +304,69 @@ def auto_delete(download_id, wait_seconds=3600*8):
 
 # ===== تنزيل وتقسيم =====
 def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
-             file_extension: str = file_ext):
+                          file_extension: str = file_ext):
     """تحميل الفيديو + تحويل الصوت + تقسيمه مع progress يوصل 100%"""
-    
     downloads_status[download_id] = {"status": "processing", "progress": 0, "files": []}
-    
-    cookies = "/opt/youtube-to-mp3-api/cookies.txt"
-    os.makedirs(folder_path, exist_ok=True)
-    output_template = os.path.join(folder_path, "%(id)s.%(ext)s")
-    
+
+    # ==== تنزيل الصوت ====
     def progress_hook(d):
         if d['status'] == 'downloading':
             percent = d.get('_percent_str', '0%').replace('%', '')
             try:
                 downloads_status[download_id]["progress"] = float(percent)
-            except ValueError:
+            except:
                 pass
         elif d['status'] == 'finished':
             downloads_status[download_id]["status"] = "finished"
-            downloads_status[download_id]["progress"] = 100
+            downloads_status[download_id]["progress"] = 100  # خلص التنزيل والتحويل
 
-    # subprocess.run(f'yt-dlp -x --audio-format m4a -o "./downloads/%(id)s.%(ext)s" {video_url}', shell=True)
-    subprocess.run(f'yt-dlp -x --audio-format m4a https://www.youtube.com/watch?v=COogWP0kKCc', shell=True)
+    downloads_status[download_id]["status"] = "before downloading"
+
+    ydl_opts = {
+        'format': 'bestaudio[ext=m4a]/bestaudio/best',
+        'outtmpl': os.path.join(folder_path, '%(id)s.%(ext)s'),
+        'progress_hooks': [progress_hook],
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'Accept-Language': 'en-US,en;q=0.9',
+        },
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': file_extension,
+            'preferredquality': '192',
+        }],
+    }
+
+    downloads_status[download_id]["status"] = "before downloading 1"
+    
+    downloaded_file = None
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        downloads_status[download_id]["status"] = f"in downloading 1, video_url: {video_url}"
+        try:
+            info = ydl.extract_info(video_url, download=True)
+            downloads_status[download_id]["status"] = "in downloading 2"
+            downloaded_file = ydl.prepare_filename(info)
+            downloads_status[download_id]["status"] = "in downloading 3"
+            if not downloaded_file.endswith(f".{file_extension}"):
+                downloads_status[download_id]["status"] = "in downloading 4"
+                downloaded_file = os.path.splitext(downloaded_file)[0] + f".{file_extension}"
+                downloads_status[download_id]["status"] = "in downloading 5"
+        except Exception as e:
+            downloads_status[download_id]["status"] = f"in downloading error, , video_url: {video_url}, error: {str(e)}"
+
+    if downloaded_file is None:
+        return None
+    
+    downloads_status[download_id]["whole_file"] = [
+        downloaded_file.replace("./", "")
+    ]
     
     downloads_status[download_id].update({
         "status": "done",
         "progress": 100,
-        "whole_file": ['downloaded_file.replace("./", "")']
     })
 
-    return 'downloaded_file'
+    return downloaded_file
 
 def download_and_delete_after_delay(download_id, video_url):
     # شغل التحميل في thread
