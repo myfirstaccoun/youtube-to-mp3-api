@@ -305,69 +305,55 @@ def auto_delete(download_id, wait_seconds=3600*8):
 
 # ===== تنزيل وتقسيم =====
 def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
-                          file_extension: str = file_ext):
+             file_extension: str = file_ext):
     """تحميل الفيديو + تحويل الصوت + تقسيمه مع progress يوصل 100%"""
+    
     downloads_status[download_id] = {"status": "processing", "progress": 0, "files": []}
-
-    # ==== تنزيل الصوت ====
+    
+    cookies = "/opt/youtube-to-mp3-api/cookies.txt"
+    os.makedirs(folder_path, exist_ok=True)
+    output_template = os.path.join(folder_path, "%(id)s.%(ext)s")
+    
     def progress_hook(d):
         if d['status'] == 'downloading':
             percent = d.get('_percent_str', '0%').replace('%', '')
             try:
                 downloads_status[download_id]["progress"] = float(percent)
-            except:
+            except ValueError:
                 pass
         elif d['status'] == 'finished':
             downloads_status[download_id]["status"] = "finished"
-            downloads_status[download_id]["progress"] = 100  # خلص التنزيل والتحويل
-
-    downloads_status[download_id]["status"] = "before downloading"
-
-    cookies = "/opt/youtube-to-mp3-api/cookies.txt"
-    downloads_folder = "/opt/youtube-to-mp3-api/downloads"
-    os.makedirs(downloads_folder, exist_ok=True)
-    output_template = os.path.join(downloads_folder, "%(id)s.%(ext)s")
+            downloads_status[download_id]["progress"] = 100
 
     ydl_opts = {
         'format': 'bestaudio/best',
-        'outtmpl': '/opt/youtube-to-mp3-api/downloads/%(id)s.%(ext)s',
-        'cookies': '/opt/youtube-to-mp3-api/cookies.txt',
-        'extractaudio': True,
-        'audioformat': 'm4a',
+        'outtmpl': output_template,
+        'cookies': cookies,
         'noplaylist': True,
         'quiet': False,
-        'extractor_args': {'youtube': {'player_client': 'default'}},
         'forceipv4': True,
         'sleep_interval': 1,
-        'retries': 10
+        'retries': 10,
+        'nocheckcertificate': True,
+        'extractor_args': {'youtube': {'player_client': 'default'}},
+        'progress_hooks': [progress_hook],
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': file_extension,
+            'preferredquality': '192',
+        }]
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download(['https://www.youtube.com/watch?v=COogWP0kKCc'])
-
-    downloads_status[download_id]["status"] = "before downloading 1"
-    
-    downloaded_file = None
-    try:
-        downloaded_file = os.path.join(downloads_folder, video_url.split("=")[-1] + f".{file_extension}")
-        downloads_status[download_id]["status"] = "done"
-        downloads_status[download_id]["progress"] = 100
-        downloads_status[download_id]["whole_file"] = [downloaded_file.replace("./", "")]
-    except subprocess.CalledProcessError as e:
-        downloads_status[download_id]["status"] = "error"
-        downloads_status[download_id]["error"] = str(e)
-        return None
-        
-    if downloaded_file is None:
-        return None
-    
-    downloads_status[download_id]["whole_file"] = [
-        downloaded_file.replace("./", "")
-    ]
+        info = ydl.extract_info(video_url, download=True)
+        downloaded_file = ydl.prepare_filename(info)
+        if not downloaded_file.endswith(f".{file_extension}"):
+            downloaded_file = os.path.splitext(downloaded_file)[0] + f".{file_extension}"
     
     downloads_status[download_id].update({
         "status": "done",
         "progress": 100,
+        "whole_file": [downloaded_file.replace("./", "")]
     })
 
     return downloaded_file
