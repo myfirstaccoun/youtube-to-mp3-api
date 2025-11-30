@@ -326,7 +326,8 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
             downloads_status[download_id]["status"] = "finished"
             downloads_status[download_id]["progress"] = 100
 
-    subprocess.run(f'yt-dlp -x --audio-format m4a -o "./downloads/%(id)s.%(ext)s" {video_url}', shell=True)
+    # subprocess.run(f'yt-dlp -x --audio-format m4a -o "./downloads/%(id)s.%(ext)s" {video_url}', shell=True)
+    subprocess.run(f'yt-dlp -x --audio-format m4a https://www.youtube.com/watch?v=COogWP0kKCc', shell=True)
     
     downloads_status[download_id].update({
         "status": "done",
