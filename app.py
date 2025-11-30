@@ -327,13 +327,28 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
     downloads_folder = "/opt/youtube-to-mp3-api/downloads"
     os.makedirs(downloads_folder, exist_ok=True)
     output_template = os.path.join(downloads_folder, "%(id)s.%(ext)s")
+
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': '/opt/youtube-to-mp3-api/downloads/%(id)s.%(ext)s',
+        'cookies': '/opt/youtube-to-mp3-api/cookies.txt',
+        'extractaudio': True,
+        'audioformat': 'm4a',
+        'noplaylist': True,
+        'quiet': False,
+        'extractor_args': {'youtube': {'player_client': 'default'}},
+        'forceipv4': True,
+        'sleep_interval': 1,
+        'retries': 10
+    }
     
-    command = f'yt-dlp --cookies /opt/youtube-to-mp3-api/cookies.txt        -o "/opt/youtube-to-mp3-api/downloads/%(id)s.%(ext)s"        -f bestaudio/best        --extract-audio        --audio-format m4a        --audio-quality 192        --extractor-args "youtube:player_client=default"        --force-ipv4        --no-check-certificate        --sleep-interval 1        --retries 10        "{video_url}"'
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download(['https://www.youtube.com/watch?v=COogWP0kKCc'])
+
     downloads_status[download_id]["status"] = "before downloading 1"
     
     downloaded_file = None
     try:
-        subprocess.run(command, shell=True, check=True)
         downloaded_file = os.path.join(downloads_folder, video_url.split("=")[-1] + f".{file_extension}")
         downloads_status[download_id]["status"] = "done"
         downloads_status[download_id]["progress"] = 100
