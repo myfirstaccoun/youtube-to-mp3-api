@@ -328,7 +328,7 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
     ydl_opts = {
         'format': 'bestaudio/best',  # Choose the best audio format available
         'postprocessors': [{
-            'key': 'FFmpegAudioConvertor',
+            'key': 'FFmpegAudioConvertor',  # Corrected key for audio conversion
             'preferredcodec': 'm4a',  # Convert to m4a format
             'preferredquality': '192',  # Audio quality
         }],
