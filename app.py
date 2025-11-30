@@ -7,7 +7,7 @@ import threading
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import subprocess
-import pytube
+from pytube import YouTube
 
 # ===== إعدادات Flask =====
 app = Flask(__name__)
