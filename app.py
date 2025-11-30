@@ -326,22 +326,7 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
             downloads_status[download_id]["status"] = "finished"
             downloads_status[download_id]["progress"] = 100
 
-    ydl_opts = {
-        'format': 'bestaudio[ext=m4a]/bestaudio/best',
-        'outtmpl': '%(title)s.%(ext)s',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'm4a',
-            'preferredquality': '192',
-        }],
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        },
-        'cookies': 'app/cookies.txt',  # لو محتاج تسجيل دخول
-    }
-    
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([video_url])
+    subprocess.run("yt-dlp -x --audio-format m4a https://www.youtube.com/watch?v=COogWP0kKCc", shell=True)
         
         # info = ydl.extract_info(video_url, download=True)
         # downloaded_file = ydl.prepare_filename(info)
