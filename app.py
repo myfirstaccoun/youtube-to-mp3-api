@@ -326,27 +326,14 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
     cookies = "/opt/youtube-to-mp3-api/cookies.txt"
     downloads_folder = "/opt/youtube-to-mp3-api/downloads"
     os.makedirs(downloads_folder, exist_ok=True)
-    
-    # اسم الملف النهائي (yt-dlp هيحطه تلقائي حسب الـ ID)
     output_template = os.path.join(downloads_folder, "%(id)s.%(ext)s")
     
-    # أمر yt-dlp لتحميل الصوت فقط
-    command = [
-        "yt-dlp",
-        "--cookies", cookies,
-        "-o", output_template,
-        "-f", "bestaudio/best",          # أفضل صيغة صوت
-        "--extract-audio",               # تحويل للصوت فقط
-        "--audio-format", "m4a",         # صيغة الصوت المطلوبة
-        "--audio-quality", "192",         # جودة الصوت
-        video_url
-    ]
-        
+    command = f'yt-dlp --cookies {cookies} -o "{output_template}" -f bestaudio/best --extract-audio --audio-format m4a --audio-quality 192 --extractor-args "youtube:player_client=default" {video_url}'
     downloads_status[download_id]["status"] = "before downloading 1"
     
     downloaded_file = None
     try:
-        subprocess.run(command, check=True)
+        subprocess.run(command, shell=True, check=True)
         downloaded_file = os.path.join(downloads_folder, video_url.split("=")[-1] + f".{file_extension}")
         downloads_status[download_id]["status"] = "done"
         downloads_status[download_id]["progress"] = 100
