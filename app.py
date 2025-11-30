@@ -328,7 +328,7 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
     os.makedirs(downloads_folder, exist_ok=True)
     output_template = os.path.join(downloads_folder, "%(id)s.%(ext)s")
     
-    command = f'yt-dlp --cookies {cookies} -o "{output_template}" -f bestaudio/best --extract-audio --audio-format m4a --audio-quality 192 --extractor-args "youtube:player_client=default" {video_url}'
+    command = f'yt-dlp --cookies /opt/youtube-to-mp3-api/cookies.txt        -o "/opt/youtube-to-mp3-api/downloads/%(id)s.%(ext)s"        -f bestaudio/best        --extract-audio        --audio-format m4a        --audio-quality 192        --extractor-args "youtube:player_client=default"        --force-ipv4        --no-check-certificate        --sleep-interval 1        --retries 10        "{video_url}"'
     downloads_status[download_id]["status"] = "before downloading 1"
     
     downloaded_file = None
