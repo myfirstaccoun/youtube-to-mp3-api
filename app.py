@@ -341,9 +341,7 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
         "--audio-quality", "192",         # جودة الصوت
         video_url
     ]
-    
-    subprocess.run(command, check=True)
-    
+        
     downloads_status[download_id]["status"] = "before downloading 1"
     
     downloaded_file = None
@@ -353,7 +351,6 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
         downloads_status[download_id]["status"] = "done"
         downloads_status[download_id]["progress"] = 100
         downloads_status[download_id]["whole_file"] = [downloaded_file.replace("./", "")]
-        return downloaded_file
     except subprocess.CalledProcessError as e:
         downloads_status[download_id]["status"] = "error"
         downloads_status[download_id]["error"] = str(e)
