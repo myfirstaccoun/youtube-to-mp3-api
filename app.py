@@ -338,7 +338,7 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
         # 🔥 إعدادات إضافية مهمة
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'web'],  # جرب clients مختلفة
+                'player_client': ['web'],  # جرب clients مختلفة
                 'player_skip': ['webpage', 'configs'],
             }
         },
