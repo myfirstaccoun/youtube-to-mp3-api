@@ -6,6 +6,7 @@ import time
 import threading
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+import subprocess
 
 # ===== إعدادات Flask =====
 app = Flask(__name__)
@@ -322,16 +323,26 @@ def download(download_id: str, video_url: str, folder_path: str = FOLDER_PATH,
 
     downloads_status[download_id]["status"] = "before downloading"
 
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': os.path.join(folder_path, '%(id)s.%(ext)s'),
-        'cookiefile': '/app/cookies.txt',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': file_extension,
-            'preferredquality': '192',
-        }],
-    }
+    cookies = "/opt/youtube-to-mp3-api/cookies.txt"
+    downloads_folder = "/opt/youtube-to-mp3-api/downloads"
+    os.makedirs(downloads_folder, exist_ok=True)
+    
+    # اسم الملف النهائي (yt-dlp هيحطه تلقائي حسب الـ ID)
+    output_template = os.path.join(downloads_folder, "%(id)s.%(ext)s")
+    
+    # أمر yt-dlp لتحميل الصوت فقط
+    command = [
+        "yt-dlp",
+        "--cookies", cookies,
+        "-o", output_template,
+        "-f", "bestaudio/best",          # أفضل صيغة صوت
+        "--extract-audio",               # تحويل للصوت فقط
+        "--audio-format", "m4a",         # صيغة الصوت المطلوبة
+        "--audio-quality", "192",         # جودة الصوت
+        video_url
+    ]
+    
+    subprocess.run(command, check=True)
     
     downloads_status[download_id]["status"] = "before downloading 1"
     
