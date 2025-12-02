@@ -510,6 +510,36 @@ def playlist_videos():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/sound-file', methods=['GET'])
+def download_sound():
+    sound_url = request.args.get('url')
+    if not sound_url:
+        return jsonify({"error": "Missing 'url' parameter"}), 400
+
+    # نجعل اسم المجلد آمن
+    safe_url = urllib.parse.quote_plus(sound_url)
+
+    # نستخدم scdl لتحميل المقطع في المجلد المحدد
+    try:
+        subprocess.run([
+            "scdl",
+            "--only-download",
+            "-l", sound_url,
+            "--path", FOLDER_PATH
+        ], check=True)
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": "Failed to download", "details": str(e)}), 500
+
+    # البحث عن الملف المحمل (نفترض آخر ملف تم تعديله في المجلد)
+    files = os.listdir(FOLDER_PATH)
+    if not files:
+        return jsonify({"error": "No file downloaded"}), 500
+
+    # نختار آخر ملف تم تعديله
+    latest_file = max([os.path.join(FOLDER_PATH, f) for f in files], key=os.path.getmtime)
+
+    return jsonify({"downloaded_file": latest_file})
+    
 @app.route("/video", methods=["GET"])
 def video_info():
     video_url = request.args.get("url")
