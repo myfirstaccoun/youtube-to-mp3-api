@@ -7,6 +7,7 @@ import threading
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import urllib.parse
+import subprocess
 
 # ===== إعدادات Flask =====
 app = Flask(__name__)
